@@ -127,7 +127,7 @@ const Students = () => {
               <User className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-gray-800">Add New Student</h4>
+              <h4 className="text-lg font-semibold text-gray-800 text-left">Add New Student</h4>
               <p className="text-sm text-gray-500">Enter student details below</p>
             </div>
           </div>
