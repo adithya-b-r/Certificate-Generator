@@ -5,6 +5,15 @@
   --foreground: #171717;
 }
 
+body {
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
+
+::-webkit-scrollbar{
+  display: none;
+}
+
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
