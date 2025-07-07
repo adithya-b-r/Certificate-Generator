@@ -261,7 +261,7 @@ const Workshops = () => {
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <button
           onClick={() => setListOpen(prev => !prev)}
           className="w-full flex items-center justify-between px-4 py-3 md:px-6 md:py-4 hover:bg-gray-50 transition-colors"
