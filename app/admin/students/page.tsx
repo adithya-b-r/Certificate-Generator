@@ -18,6 +18,13 @@ const Students = () => {
   const [uploadError, setUploadError] = useState('')
   const [excelOpen, setExcelOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredStudents = students.filter(student =>
+    student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.usn.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.branch.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -82,15 +89,15 @@ const Students = () => {
   const downloadTemplate = () => {
     const template = [
       {
-        'Student Name': 'John Doe',
-        'USN': '1AB21CS001',
+        'Student Name': 'Adithya B R',
+        'USN': '4SH24MC009',
         'Gender': 'Male',
         'Branch': 'MCA',
         'Year': '1'
       },
       {
-        'Student Name': 'Jane Smith',
-        'USN': '1AB21CS002',
+        'Student Name': 'Rahul Kulal',
+        'USN': '4SH24MC043',
         'Gender': 'Female',
         'Branch': 'Information Science & Engineering',
         'Year': '2'
@@ -328,45 +335,65 @@ const Students = () => {
         <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h4 className="text-lg font-semibold text-gray-800">Students List</h4>
-                <p className="text-sm text-gray-500">{students.length} students added</p>
+                <p className="text-sm text-gray-500">{students.length} student{students.length > 1 && 's'} added</p>
               </div>
             </div>
             <button
               onClick={() => setStudents([])}
-              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+              className="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors font-medium"
             >
               Clear All
             </button>
           </div>
 
+          <div className="mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, USN or branch..."
+              className="w-full md:w-72 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full text-sm border-separate border-spacing-y-2">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left p-3 font-medium text-gray-700 border-b">Name</th>
-                  <th className="text-left p-3 font-medium text-gray-700 border-b">USN</th>
-                  <th className="text-left p-3 font-medium text-gray-700 border-b">Gender</th>
-                  <th className="text-left p-3 font-medium text-gray-700 border-b">Branch</th>
-                  <th className="text-left p-3 font-medium text-gray-700 border-b">Year</th>
+                <tr className="text-left text-gray-600">
+                  <th className="px-4 py-2">Name</th>
+                  <th className="px-4 py-2">USN</th>
+                  <th className="px-4 py-2">Gender</th>
+                  <th className="px-4 py-2">Branch</th>
+                  <th className="px-4 py-2">Year</th>
                 </tr>
               </thead>
               <tbody>
-                {students.map((student, index) => (
-                  <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="p-3 border-b text-gray-800">{student.studentName}</td>
-                    <td className="p-3 border-b text-gray-600">{student.usn}</td>
-                    <td className="p-3 border-b text-gray-600">{student.gender}</td>
-                    <td className="p-3 border-b text-gray-600">{student.branch}</td>
-                    <td className="p-3 border-b text-gray-600">{student.year}</td>
+                {filteredStudents.map((student, index) => (
+                  <tr key={student.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg shadow-sm">
+                    <td className="px-4 py-3 text-gray-900 font-medium rounded-l-lg">{student.studentName}</td>
+                    <td className="px-4 py-3 text-gray-700">{student.usn}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-3 py-1 text-blue-800 rounded-full capitalize">{student.gender}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-3 text-teal-800 rounded-full capitalize">{student.branch}</span>
+                    </td>
+                    <td className="px-4 py-3 rounded-r-lg">
+                      <span className="px-3 text-indigo-800 rounded-full">{student.year}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {filteredStudents.length === 0 && (
+              <div className="text-center text-gray-500 mt-6">No matching students found.</div>
+            )}
           </div>
         </div>
       )}
