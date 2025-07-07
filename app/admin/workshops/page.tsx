@@ -110,13 +110,13 @@ const Workshops = () => {
   }
 
   return (
-    <section className="text-black space-y-8 p-4 md:p-6">
+    <section className="text-black space-y-8">
       <div className="mb-8">
         <h3 className="text-2xl font-bold text-gray-800 mb-2">Workshop Management</h3>
         <p className="text-gray-600">Add workshop details including workshop information, resource person details, certificate template, and participants list.</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <button
           onClick={() => setFormOpen(prev => !prev)}
           className="w-full flex items-center justify-between px-4 py-3 md:px-6 md:py-4 hover:bg-gray-50 transition-colors"
