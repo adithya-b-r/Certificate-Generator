@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from 'react'
-import { User, Hash, Users, BookOpen, Calendar, Plus, Search } from 'lucide-react'
+import { User, Hash, Users, BookOpen, Calendar, Plus, Upload, FileSpreadsheet, Download } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 const Students = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,12 @@ const Students = () => {
     branch: '',
     year: ''
   })
+
+  const [students, setStudents] = useState<any[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [excelOpen, setExcelOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -22,8 +29,8 @@ const Students = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Student Data:', formData)
-    // Remaining to add appwrite Backend
+    setStudents(prev => [...prev, { ...formData, id: Date.now() }])
+    handleReset()
   }
 
   const handleReset = () => {
@@ -36,6 +43,66 @@ const Students = () => {
     })
   }
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setUploadError('')
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const data = event.target?.result
+        const workbook = XLSX.read(data, { type: 'binary' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+        const mappedData = jsonData.map((row: any, index: number) => ({
+          id: Date.now() + index,
+          studentName: row['Student Name'] || row['Name'] || row['student_name'] || '',
+          usn: row['USN'] || row['usn'] || row['University Seat Number'] || '',
+          gender: row['Gender'] || row['gender'] || '',
+          branch: row['Branch'] || row['branch'] || row['Department'] || '',
+          year: row['Year'] || row['year'] || row['Academic Year'] || ''
+        }))
+
+        setStudents(prev => [...prev, ...mappedData])
+        setUploading(false)
+        e.target.value = ''
+      } catch (error) {
+        setUploadError('Error reading Excel file. Please check the format.')
+        setUploading(false)
+      }
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  const downloadTemplate = () => {
+    const template = [
+      {
+        'Student Name': 'John Doe',
+        'USN': '1AB21CS001',
+        'Gender': 'Male',
+        'Branch': 'MCA',
+        'Year': '1'
+      },
+      {
+        'Student Name': 'Jane Smith',
+        'USN': '1AB21CS002',
+        'Gender': 'Female',
+        'Branch': 'Information Science & Engineering',
+        'Year': '2'
+      }
+    ]
+
+    const ws = XLSX.utils.json_to_sheet(template)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Students Template')
+    XLSX.writeFile(wb, 'students_template.xlsx')
+  }
+
   return (
     <section className="text-black">
       <div className="mb-8">
@@ -43,157 +110,266 @@ const Students = () => {
         <p className="text-gray-600">Add and manage student information for certificate generation</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-            <User className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold text-gray-800">Add New Student</h4>
-            <p className="text-sm text-gray-500">Enter student details below</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Student Name *
-              </label>
-              <input
-                type="text"
-                name="studentName"
-                value={formData.studentName}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="Enter full name"
-                required
-              />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <button
+          onClick={() => setFormOpen(prev => !prev)}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <User className="w-5 h-5 text-white" />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Hash className="w-4 h-4" />
-                USN (University Seat Number) *
-              </label>
-              <input
-                type="text"
-                name="usn"
-                value={formData.usn}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="e.g., 1AB21CS001"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Gender *
-              </label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
-                required
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                Branch *
-              </label>
-              <select
-                name="branch"
-                value={formData.branch}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
-                required
-              >
-                <option value="">Select Branch</option>
-                <option value="cse">Computer Science & Engineering</option>
-                <option value="ise">Information Science & Engineering</option>
-                <option value="ece">Electronics & Communication Engineering</option>
-                <option value="eee">Electrical & Electronics Engineering</option>
-                <option value="mech">Mechanical Engineering</option>
-                <option value="civil">Civil Engineering</option>
-                <option value="it">Information Technology</option>
-                <option value="ai">Artificial Intelligence</option>
-                <option value="ds">Data Science</option>
-              </select>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Year *
-              </label>
-              <select
-                name="year"
-                value={formData.year}
-                onChange={handleInputChange}
-                className="w-full md:w-64 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
-                required
-              >
-                <option value="">Select Year</option>
-                <option value="1">1st Year</option>
-                <option value="2">2nd Year</option>
-                <option value="3">3rd Year</option>
-                <option value="4">4th Year</option>
-              </select>
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800">Add New Student</h4>
+              <p className="text-sm text-gray-500">Enter student details below</p>
             </div>
           </div>
+          <span className="text-gray-500 text-xl">{formOpen ? '-' : '+'}</span>
+        </button>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-200">
-            <button
-              type="submit"
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-              Add Student
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-            >
-              Reset Form
-            </button>
+        {formOpen && (
+          <div className="px-6 pb-6">
+            <form onSubmit={handleSubmit} className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Student Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="studentName"
+                    value={formData.studentName}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Enter full name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Hash className="w-4 h-4" />
+                    USN (University Seat Number) *
+                  </label>
+                  <input
+                    type="text"
+                    name="usn"
+                    value={formData.usn}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="e.g., 1AB21CS001"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Gender *
+                  </label>
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                    required
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    Branch *
+                  </label>
+                  <select
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                    required
+                  >
+                    <option value="">Select Branch</option>
+                    <option value="cse">Computer Science & Engineering</option>
+                    <option value="ise">Information Science & Engineering</option>
+                    <option value="ece">Electronics & Communication Engineering</option>
+                    <option value="eee">Electrical & Electronics Engineering</option>
+                    <option value="mech">Mechanical Engineering</option>
+                    <option value="civil">Civil Engineering</option>
+                    <option value="it">Information Technology</option>
+                    <option value="ai">Artificial Intelligence</option>
+                    <option value="ds">Data Science</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Year *
+                  </label>
+                  <select
+                    name="year"
+                    value={formData.year}
+                    onChange={handleInputChange}
+                    className="w-full md:w-64 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                    required
+                  >
+                    <option value="">Select Year</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-200">
+                <button
+                  type="submit"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Student
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Reset Form
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        )}
       </div>
 
-      <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-            <Search className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold text-gray-800">Search Students</h4>
-            <p className="text-sm text-gray-500">Find existing student records</p>
-          </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
-          <input
-            type="text"
-            placeholder="Search by name or USN..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          />
-          <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg">
-            Search
-          </button>
-        </div>
+      {/* Excel Import Section */}
+      <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200">
+        <button
+          onClick={() => setExcelOpen(prev => !prev)}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h4 className="text-lg text-left font-semibold text-gray-800">Import from Excel</h4>
+              <p className="text-sm text-gray-500">Upload Excel file with student data</p>
+            </div>
+          </div>
+          <span className="text-gray-500 text-xl">{excelOpen ? '-' : '+'}</span>
+        </button>
+
+        {excelOpen && (
+          <div className="p-6 border-t border-gray-100 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <button
+                onClick={downloadTemplate}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                <Download className="w-4 h-4" />
+                Download Template
+              </button>
+              <p className="text-sm text-gray-600">Download template with correct columns</p>
+            </div>
+
+            <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer">
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-lg font-medium text-gray-700">
+                    {uploading ? 'Uploading...' : 'Click to upload Excel file'}
+                  </span>
+                  <p className="text-sm text-gray-500 mt-1">Supports .xlsx and .xls files</p>
+                </div>
+              </div>
+            </label>
+
+
+            {uploadError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700 text-sm">{uploadError}</p>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="font-medium text-blue-900 mb-2">Expected Excel Format:</h5>
+              <div className="text-sm text-blue-800 space-y-1">
+                <p>• <strong>Student Name:</strong> Full name of the student</p>
+                <p>• <strong>USN:</strong> University Seat Number</p>
+                <p>• <strong>Gender:</strong> Male/Female/Other</p>
+                <p>• <strong>Branch:</strong> Department/Branch name</p>
+                <p>• <strong>Year:</strong> Academic year (1, 2, 3, or 4)</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Students List */}
+      {students.length > 0 && (
+        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Students List</h4>
+                <p className="text-sm text-gray-500">{students.length} students added</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setStudents([])}
+              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+            >
+              Clear All
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left p-3 font-medium text-gray-700 border-b">Name</th>
+                  <th className="text-left p-3 font-medium text-gray-700 border-b">USN</th>
+                  <th className="text-left p-3 font-medium text-gray-700 border-b">Gender</th>
+                  <th className="text-left p-3 font-medium text-gray-700 border-b">Branch</th>
+                  <th className="text-left p-3 font-medium text-gray-700 border-b">Year</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student, index) => (
+                  <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="p-3 border-b text-gray-800">{student.studentName}</td>
+                    <td className="p-3 border-b text-gray-600">{student.usn}</td>
+                    <td className="p-3 border-b text-gray-600">{student.gender}</td>
+                    <td className="p-3 border-b text-gray-600">{student.branch}</td>
+                    <td className="p-3 border-b text-gray-600">{student.year}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
