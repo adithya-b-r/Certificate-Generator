@@ -269,7 +269,7 @@ const Students = () => {
             </div>
             <div>
               <h4 className="text-lg text-left font-semibold text-gray-800">Import from Excel</h4>
-              <p className="text-sm text-gray-500">Upload Excel file with student data</p>
+              <p className="text-sm text-gray-500 text-left">Upload Excel file with student data</p>
             </div>
           </div>
           <span className="text-gray-500 text-xl">{excelOpen ? '-' : '+'}</span>
