@@ -5,7 +5,12 @@ import Link from 'next/link'
 import { Users, Calendar, UserCheck, Award, ChevronRight, FileText, Menu, X } from 'lucide-react'
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // const [isOpen, setIsOpen] = useState(-1);
+
+  // const toggleSidebar = (mitem) => {
+
+  // }
 
   const navigationItems = [
     {
@@ -53,10 +58,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <div className='w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center'>
               <Award className='w-5 h-5 text-white' />
             </div>
-            <div>
+            <Link href={"/admin/"}>
+            <div className='cursor-default' onClick={() => window.location.href='/admin/'}>
               <h1 className='font-bold text-xl text-gray-900'>CertGen Admin</h1>
               <p className='text-sm text-gray-500'>Certificate Generator</p>
             </div>
+            </Link>
           </div>
         </div>
 

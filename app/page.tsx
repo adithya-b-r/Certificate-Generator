@@ -1,24 +1,9 @@
 "use client"
 
 import React, { useState, useMemo } from 'react'
-import { 
-  Calendar, 
-  User, 
-  Download, 
-  Search, 
-  Filter, 
-  BookOpen, 
-  Users, 
-  Award,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-  Menu,
-  X
-} from 'lucide-react'
+import { Calendar, User, Download, Search, Filter, BookOpen, Users, Award, ChevronDown, ChevronUp, Menu, X } from 'lucide-react'
 
 const WorkshopClientInterface = () => {
-  // Sample workshop data
   const workshops = [
     {
       id: '1',
@@ -46,7 +31,6 @@ const WorkshopClientInterface = () => {
     }
   ]
 
-  // Sample students data
   const students = [
     { id: '1', name: 'Arjun Kumar', usn: '1AB21CS001', branch: 'CSE' },
     { id: '2', name: 'Riya Sharma', usn: '1AB21CS002', branch: 'CSE' },
@@ -58,21 +42,20 @@ const WorkshopClientInterface = () => {
     { id: '8', name: 'Meera Gupta', usn: '1AB21CS008', branch: 'CSE' }
   ]
 
-  // Sample attendance data
   const attendanceData = [
     { studentId: '1', workshopId: '1', attended: true },
     { studentId: '2', workshopId: '1', attended: true },
     { studentId: '3', workshopId: '1', attended: true },
     { studentId: '5', workshopId: '1', attended: true },
     { studentId: '8', workshopId: '1', attended: true },
-    
+
     { studentId: '1', workshopId: '2', attended: true },
     { studentId: '2', workshopId: '2', attended: true },
     { studentId: '4', workshopId: '2', attended: true },
     { studentId: '6', workshopId: '2', attended: true },
     { studentId: '7', workshopId: '2', attended: true },
     { studentId: '8', workshopId: '2', attended: true },
-    
+
     { studentId: '2', workshopId: '3', attended: true },
     { studentId: '3', workshopId: '3', attended: true },
     { studentId: '4', workshopId: '3', attended: true },
@@ -86,23 +69,21 @@ const WorkshopClientInterface = () => {
 
   const branches = ['All Branches', 'CSE', 'ISE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AI', 'DS']
 
-  // Get attendees for a specific workshop
   const getWorkshopAttendees = (workshopId: string) => {
     const attendeeIds = attendanceData
       .filter(record => record.workshopId === workshopId && record.attended)
       .map(record => record.studentId)
-    
+
     return students.filter(student => attendeeIds.includes(student.id))
   }
 
-  // Filter attendees based on search and branch
   const getFilteredAttendees = (workshopId: string) => {
     const attendees = getWorkshopAttendees(workshopId)
-    
+
     return attendees.filter(student => {
       const matchesBranch = selectedBranch === 'All Branches' || student.branch === selectedBranch
       const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.usn.toLowerCase().includes(searchTerm.toLowerCase())
+        student.usn.toLowerCase().includes(searchTerm.toLowerCase())
       return matchesBranch && matchesSearch
     })
   }
@@ -118,7 +99,6 @@ const WorkshopClientInterface = () => {
   }
 
   const handleDownloadCertificate = (studentName: string, workshopName: string) => {
-    // Simulate certificate download
     alert(`Downloading certificate for ${studentName} - ${workshopName}`)
   }
 
@@ -130,10 +110,8 @@ const WorkshopClientInterface = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile-first responsive container */}
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        
-        {/* Header - Responsive */}
+
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="flex items-center gap-3">
@@ -147,7 +125,6 @@ const WorkshopClientInterface = () => {
             </div>
           </div>
 
-          {/* Stats - Responsive Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -186,9 +163,7 @@ const WorkshopClientInterface = () => {
             </div>
           </div>
 
-          {/* Filters - Mobile Responsive */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
-            {/* Filter Header - Mobile Toggle */}
             <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 sm:border-b-0">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -204,7 +179,6 @@ const WorkshopClientInterface = () => {
               </button>
             </div>
 
-            {/* Filter Content */}
             <div className={`${filtersVisible ? 'block' : 'hidden'} sm:block p-3 sm:p-4`}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
@@ -238,7 +212,6 @@ const WorkshopClientInterface = () => {
           </div>
         </div>
 
-        {/* Workshops List - Mobile Optimized */}
         <div className="space-y-4 sm:space-y-6">
           {workshops.map(workshop => {
             const filteredAttendees = getFilteredAttendees(workshop.id)
@@ -247,8 +220,7 @@ const WorkshopClientInterface = () => {
 
             return (
               <div key={workshop.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                {/* Workshop Header - Mobile Responsive */}
-                <div 
+                <div
                   className="p-4 sm:p-6 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={() => toggleWorkshopExpansion(workshop.id)}
                 >
@@ -260,8 +232,7 @@ const WorkshopClientInterface = () => {
                       <div className="min-w-0 flex-1">
                         <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 break-words">{workshop.name}</h3>
                         <p className="text-sm sm:text-base text-gray-600 mb-2 sm:mb-3 break-words">{workshop.description}</p>
-                        
-                        {/* Workshop Details - Responsive Stack */}
+
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
@@ -278,7 +249,7 @@ const WorkshopClientInterface = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
                       <div className="text-left sm:text-right">
                         <p className="text-xs sm:text-sm text-gray-500">Department</p>
@@ -295,7 +266,6 @@ const WorkshopClientInterface = () => {
                   </div>
                 </div>
 
-                {/* Attendees List - Mobile Optimized */}
                 {isExpanded && (
                   <div className="p-4 sm:p-6">
                     {filteredAttendees.length === 0 ? (
@@ -318,7 +288,6 @@ const WorkshopClientInterface = () => {
                           </button>
                         </div>
 
-                        {/* Attendees Grid - Responsive */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                           {filteredAttendees.map(student => (
                             <div key={student.id} className="p-3 sm:p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
@@ -331,7 +300,7 @@ const WorkshopClientInterface = () => {
                                   <p className="text-xs sm:text-sm text-gray-600 truncate">{student.usn}</p>
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center justify-between gap-2">
                                 <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full flex-shrink-0">
                                   {student.branch}
@@ -357,7 +326,6 @@ const WorkshopClientInterface = () => {
           })}
         </div>
 
-        {/* Empty State */}
         {workshops.length === 0 && (
           <div className="text-center py-8 sm:py-12">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
