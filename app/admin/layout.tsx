@@ -6,11 +6,6 @@ import { Users, Calendar, UserCheck, Award, ChevronRight, FileText, Menu, X } fr
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // const [isOpen, setIsOpen] = useState(-1);
-
-  // const toggleSidebar = (mitem) => {
-
-  // }
 
   const navigationItems = [
     {
@@ -129,7 +124,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className='flex-1 p-4 sm:p-6 lg:p-8 bg-white overflow-y-scroll'>
+        <div className='flex-1 p-4 sm:p-6 lg:p-8 bg-white overflow-y-scroll w-sm  md:w-full'>
           {children}
         </div>
       </div>

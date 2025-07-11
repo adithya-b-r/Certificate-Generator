@@ -3,7 +3,7 @@
 import { Calendar, Users, FileText, BookOpen } from 'lucide-react'
 
 const Admin = () => {
-  // Sample data for stats
+  // Sample data
   const stats = [
     { title: "Total Certificates", value: "134", icon: <FileText className="w-5 h-5" /> },
     { title: "Total Students", value: "73", icon: <Users className="w-5 h-5" /> },

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { User, Hash, Users, BookOpen, Calendar, Plus, Upload, FileSpreadsheet, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
+import { addStudents } from '@/app/lib/appwrite'
+
 const Students = () => {
   const [formData, setFormData] = useState({
     studentName: '',
@@ -20,6 +22,14 @@ const Students = () => {
   const [formOpen, setFormOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
+  const uploadToDB = () => {
+    console.log(students);
+
+    students.forEach((student) => {
+      console.log(student);
+    })
+  }
+
   const filteredStudents = students.filter(student =>
     student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.usn.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -32,11 +42,14 @@ const Students = () => {
       ...prev,
       [name]: value
     }))
+
+    console.log(formData);
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setStudents(prev => [...prev, { ...formData, id: Date.now() }])
+
     handleReset()
   }
 
@@ -76,6 +89,7 @@ const Students = () => {
         }))
 
         setStudents(prev => [...prev, ...mappedData])
+
         setUploading(false)
         e.target.value = ''
       } catch (error) {
@@ -96,7 +110,7 @@ const Students = () => {
         'Year': '1'
       },
       {
-        'Student Name': 'Rahul Kulal',
+        'Student Name': 'Student 2',
         'USN': '4SH24MC043',
         'Gender': 'Female',
         'Branch': 'Information Science & Engineering',
@@ -332,7 +346,7 @@ const Students = () => {
 
       {/* Students List */}
       {students.length > 0 && (
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
@@ -361,7 +375,7 @@ const Students = () => {
             />
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-scroll">
             <table className="w-full text-sm border-separate border-spacing-y-2">
               <thead>
                 <tr className="text-left text-gray-600">
@@ -388,12 +402,20 @@ const Students = () => {
                     </td>
                   </tr>
                 ))}
+
               </tbody>
             </table>
 
             {filteredStudents.length === 0 && (
               <div className="text-center text-gray-500 mt-6">No matching students found.</div>
             )}
+
+            <button
+              onClick={uploadToDB}
+              className="flex items-center justify-center gap-2 mx-auto mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+            >
+              Update Students
+            </button>
           </div>
         </div>
       )}
