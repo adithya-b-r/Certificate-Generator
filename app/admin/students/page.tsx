@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { User, Hash, Users, BookOpen, Calendar, Plus, Upload, FileSpreadsheet, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
-import { addStudents } from '@/app/lib/appwrite'
+import { addStudent } from '@/app/lib/appwrite'
 
 const Students = () => {
   const [formData, setFormData] = useState({
@@ -23,14 +23,38 @@ const Students = () => {
   const [searchQuery, setSearchQuery] = useState('')
 
   const [dbUpdate, setDbUpdate] = useState(false);
+  const [updateCounter, setUpdateCounter] = useState(0);
 
-  const uploadToDB = () => {
-    console.log(students);
+  const uploadToDB = async () => {
+    setDbUpdate(true);
+    setUpdateCounter(0);
 
-    students.forEach((student) => {
-      setInterval(() => {console.log(student)}, 2000);
-    })
-  }
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i];
+
+      try {
+        await addStudent(
+          student.studentName,
+          student.usn,
+          student.gender,
+          student.branch,
+          Number(student.year),
+        );
+
+        setUpdateCounter((prev) => {
+          const updated = prev + 1;
+          if (updated === students.length) {
+            setDbUpdate(false);
+            setStudents([]);
+          }
+          return updated;
+        });
+      } catch (err) {
+        console.error(`Failed to add ${student.studentName}`, err);
+      }
+    }
+  };
+
 
   const filteredStudents = students.filter(student =>
     student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -473,7 +497,7 @@ const Students = () => {
               className="flex items-center justify-center gap-2 mx-auto mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
             >
               {/* Update Students */}
-              Updating Student... [2/{students.length}]
+              {dbUpdate ? `Updating Student... [${updateCounter}/${students.length}]` : 'Update Students'}
             </button>
           </div>
         </div>
