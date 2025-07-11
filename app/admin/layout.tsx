@@ -124,7 +124,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className='flex-1 p-4 sm:p-6 lg:p-8 bg-white overflow-y-scroll w-lg md:w-full'>
+        <div className='flex-1 p-4 sm:p-6 lg:p-8 bg-white overflow-y-scroll w-sm md:w-full'>
           {children}
         </div>
       </div>

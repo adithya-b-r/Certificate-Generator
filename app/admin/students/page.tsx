@@ -22,11 +22,13 @@ const Students = () => {
   const [formOpen, setFormOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
+  const [dbUpdate, setDbUpdate] = useState(false);
+
   const uploadToDB = () => {
     console.log(students);
 
     students.forEach((student) => {
-      console.log(student);
+      setInterval(() => {console.log(student)}, 2000);
     })
   }
 
@@ -110,11 +112,67 @@ const Students = () => {
         'Year': '1'
       },
       {
-        'Student Name': 'Student 2',
+        'Student Name': 'Rahul Sharma',
         'USN': '4SH24MC043',
-        'Gender': 'Female',
+        'Gender': 'Male',
         'Branch': 'Information Science & Engineering',
         'Year': '2'
+      },
+      {
+        'Student Name': 'Payal Patel',
+        'USN': '4SH24EC012',
+        'Gender': 'Female',
+        'Branch': 'Electronics & Communication',
+        'Year': '3'
+      },
+      {
+        'Student Name': 'Aarav Gupta',
+        'USN': '4SH24CS105',
+        'Gender': 'Male',
+        'Branch': 'Computer Science',
+        'Year': '4'
+      },
+      {
+        'Student Name': 'Neha Singh',
+        'USN': '4SH24ME034',
+        'Gender': 'Female',
+        'Branch': 'Mechanical Engineering',
+        'Year': '2'
+      },
+      {
+        'Student Name': 'Vikram Joshi',
+        'USN': '4SH24EE078',
+        'Gender': 'Male',
+        'Branch': 'Electrical Engineering',
+        'Year': '3'
+      },
+      {
+        'Student Name': 'Ananya Reddy',
+        'USN': '4SH24CV015',
+        'Gender': 'Female',
+        'Branch': 'Civil Engineering',
+        'Year': '1'
+      },
+      {
+        'Student Name': 'Rohan Malhotra',
+        'USN': '4SH24AI022',
+        'Gender': 'Male',
+        'Branch': 'Artificial Intelligence',
+        'Year': '2'
+      },
+      {
+        'Student Name': 'Divya Iyer',
+        'USN': '4SH24DS011',
+        'Gender': 'Female',
+        'Branch': 'Data Science',
+        'Year': '3'
+      },
+      {
+        'Student Name': 'Karthik Nair',
+        'USN': '4SH24IT087',
+        'Gender': 'Male',
+        'Branch': 'Information Technology',
+        'Year': '4'
       }
     ]
 
@@ -414,7 +472,8 @@ const Students = () => {
               onClick={uploadToDB}
               className="flex items-center justify-center gap-2 mx-auto mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
             >
-              Update Students
+              {/* Update Students */}
+              Updating Student... [2/{students.length}]
             </button>
           </div>
         </div>
