@@ -1,12 +1,23 @@
 "use client"
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { User, Hash, Users, BookOpen, Calendar, Plus, Upload, FileSpreadsheet, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
-import { addStudent } from '@/app/lib/appwrite'
+import { addStudent, fetchStudents } from '@/app/lib/appwrite'
 
 const Students = () => {
+
+  useEffect(() => {
+    const getStudents = async () => {
+      const data = await fetchStudents()
+      if (data) setStudents(data)
+    }
+
+    getStudents()
+  }, [])
+
+  
   const [formData, setFormData] = useState({
     studentName: '',
     usn: '',
