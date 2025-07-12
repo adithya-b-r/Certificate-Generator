@@ -1,20 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import {
-  Calendar,
-  BookOpen,
-  User,
-  FileSignature,
-  FileSpreadsheet,
-  Upload,
-  Plus,
-  Trash2,
-  Edit,
-  ChevronDown,
-  ChevronUp,
-  X
-} from 'lucide-react'
+import { Calendar, BookOpen, User, FileSignature, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X } from 'lucide-react'
 
 const Workshops = () => {
   const [formData, setFormData] = useState({

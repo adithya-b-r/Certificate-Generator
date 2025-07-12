@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { User, Hash, Users, BookOpen, Calendar, Plus, Upload, FileSpreadsheet, Download } from 'lucide-react'
+import { User, Hash, Users, BookOpen, Calendar, Plus, Upload, FileSpreadsheet, Download, Trash } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
-import { addStudent, fetchStudents } from '@/app/lib/appwrite'
+import { addStudent, deleteStudent, fetchStudents } from '@/app/lib/appwrite'
 
 const Students = () => {
 
@@ -17,10 +17,10 @@ const Students = () => {
     getStudents()
   }, [])
 
-  
+
   const [formData, setFormData] = useState({
     studentName: '',
-    usn: '',
+    USN: '',
     gender: '',
     branch: '',
     year: ''
@@ -40,6 +40,19 @@ const Students = () => {
   const getUniqueBranches = (students: any[]) => {
     const branches = students.map((student: { branch: any }) => student.branch).filter((branch: any) => branch);
     return [...new Set(branches)].sort();
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    const confirm = window.confirm("Are you sure you want to delete this student?");
+    if (!confirm) return;
+
+    try {
+      await deleteStudent(studentId);
+      const updatedList = await fetchStudents();
+      if (updatedList) setStudents(updatedList);
+    } catch (err) {
+      console.error("Failed to delete student:", err);
+    }
   };
 
   const branchDisplayNames = {
@@ -72,41 +85,55 @@ const Students = () => {
     setDbUpdate(true);
     setUpdateCounter(0);
 
-    for (let i = 0; i < students.length; i++) {
-      const student = students[i];
+    const uniqueStudents = students.reduce((acc, curr) => {
+      const exists = acc.some(
+        (s: { USN: string }) => s.USN.trim().toLowerCase() === curr.USN.trim().toLowerCase()
+      );
+      return exists ? acc : [...acc, curr];
+    }, []);
+
+    let successCount = 0;
+    const failedUSNs: string[] = [];
+
+    for (let i = 0; i < uniqueStudents.length; i++) {
+      const student = uniqueStudents[i];
 
       try {
         await addStudent(
           student.studentName,
-          student.usn,
+          student.USN,
           student.gender,
           student.branch,
-          Number(student.year),
+          Number(student.year)
         );
 
-        // Used below logic because UpdatedCounter was not working due to closure.
-        setUpdateCounter((prev) => {
-          const updated = prev + 1;
-          if (updated === students.length) {
-            setDbUpdate(false);
-            setStudents([]);
-          }
-          return updated;
-        });
-
+        successCount++;
+        setUpdateCounter((prev) => prev + 1);
       } catch (err) {
+        failedUSNs.push(student.USN);
         console.error(`Failed to add ${student.studentName}`, err);
       }
     }
+
+    const successfulUSNs = uniqueStudents
+      .filter((s: { USN: string }) => !failedUSNs.includes(s.USN))
+      .map((s: { USN: string }) => s.USN.toLowerCase());
+
+    setStudents(prev =>
+      prev.filter(s => !successfulUSNs.includes(s.USN.trim().toLowerCase()))
+    );
+
+    setDbUpdate(false);
   };
+
 
   const searchFilteredStudents = students.filter(student =>
     student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.usn.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.USN.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.branch.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredStudents = selectedBranchFilter 
+  const filteredStudents = selectedBranchFilter
     ? searchFilteredStudents.filter(student => student.branch === selectedBranchFilter)
     : searchFilteredStudents;
 
@@ -121,16 +148,26 @@ const Students = () => {
   }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setStudents(prev => [...prev, { ...formData, id: Date.now() }])
+    e.preventDefault();
 
-    handleReset()
-  }
+    const isDuplicate = students.some(
+      student => student.USN.trim().toLowerCase() === formData.USN.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      alert("Student with this USN already exists.");
+      return;
+    }
+
+    setStudents(prev => [...prev, { ...formData, id: Date.now() }]);
+    handleReset();
+  };
+
 
   const handleReset = () => {
     setFormData({
       studentName: '',
-      usn: '',
+      USN: '',
       gender: '',
       branch: '',
       year: ''
@@ -156,13 +193,19 @@ const Students = () => {
         const mappedData = jsonData.map((row: any, index: number) => ({
           id: Date.now() + index,
           studentName: row['Student Name'] || row['Name'] || row['student_name'] || '',
-          usn: row['USN'] || row['usn'] || row['University Seat Number'] || '',
+          USN: (row['USN'] || row['usn'] || '').trim(),
           gender: row['Gender'] || row['gender'] || '',
           branch: row['Branch'] || row['branch'] || row['Department'] || '',
           year: row['Year'] || row['year'] || row['Academic Year'] || ''
-        }))
+        }));
 
-        setStudents(prev => [...prev, ...mappedData])
+        const uniqueNewStudents = mappedData.filter(newStudent => {
+          return !students.some(
+            existing => existing.USN.trim().toLowerCase() === newStudent.USN.toLowerCase()
+          );
+        });
+
+        setStudents(prev => [...prev, ...uniqueNewStudents]);
 
         setUploading(false)
         e.target.value = ''
@@ -305,8 +348,8 @@ const Students = () => {
                   </label>
                   <input
                     type="text"
-                    name="usn"
-                    value={formData.usn}
+                    name="USN"
+                    value={formData.USN}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="e.g., 1AB21CS001"
@@ -521,7 +564,7 @@ const Students = () => {
               placeholder="Search by name, USN or branch..."
               className="flex-1 sm:flex-initial sm:w-72 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            
+
             {uniqueBranches.length > 0 && (
               <select
                 value={selectedBranchFilter}
@@ -550,25 +593,37 @@ const Students = () => {
                   <th className="px-4 py-2">Gender</th>
                   <th className="px-4 py-2">Branch</th>
                   <th className="px-4 py-2">Year</th>
+                  <th className="px-4 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredStudents.map((student, index) => (
                   <tr key={student.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg shadow-sm">
                     <td className="px-4 py-3 text-gray-900 font-medium rounded-l-lg">{student.studentName}</td>
-                    <td className="px-4 py-3 text-gray-700">{student.usn}</td>
+                    <td className="px-4 py-3 text-gray-700">{student.USN}</td>
                     <td className="px-4 py-3">
                       <span className="px-3 py-1 text-blue-800 rounded-full capitalize">{student.gender}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-3 text-teal-800 rounded-full capitalize" title={getBranchDisplayName(student.branch)}>
+                      <span className="px-3 text-teal-800 rounded-full capitalize">
                         {student.branch}
                       </span>
                     </td>
-                    <td className="px-4 py-3 rounded-r-lg">
+                    <td className="px-4 py-3">
                       <span className="px-3 text-indigo-800 rounded-full">{student.year}</span>
                     </td>
+                    <td className="px-4 py-3 rounded-r-lg">
+                      <button
+                        onClick={() => handleDeleteStudent(student.$id)}
+                        className="text-red-600 hover:text-red-800 flex justify-center items-center"
+                        title="Delete Student"
+                      >
+                        <Trash className="w-5 h-5" />
+                      </button>
+                    </td>
+
                   </tr>
+
                 ))}
 
               </tbody>
@@ -576,7 +631,7 @@ const Students = () => {
 
             {filteredStudents.length === 0 && (
               <div className="text-center text-gray-500 mt-6">
-                {selectedBranchFilter 
+                {selectedBranchFilter
                   ? `No students found in ${getBranchDisplayName(selectedBranchFilter)} branch.`
                   : 'No matching students found.'
                 }

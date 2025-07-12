@@ -48,12 +48,25 @@ export const addStudent = async (
   }
 };
 
+export const deleteStudent = async (studentId: string) => {
+  try {
+    const res = await databases.deleteDocument(
+      config.databaseId,
+      config.studentsCollectionId,
+      studentId
+    );
+    return res;
+  } catch (err) {
+    console.log("Error Deleting Student: " + err);
+  }
+};
+
 export const fetchStudents = async () => {
   try {
     const response = await databases.listDocuments(
       config.databaseId,
-      config.studentsCollectionId,
-    )
+      config.studentsCollectionId
+    );
 
     return response.documents;
   } catch (err) {
