@@ -94,6 +94,7 @@ const Students = () => {
           Number(student.year),
         );
 
+        // Used below logic because UpdatedCounter was not working due to closure.
         setUpdateCounter((prev) => {
           const updated = prev + 1;
           if (updated === students.length) {
@@ -102,6 +103,7 @@ const Students = () => {
           }
           return updated;
         });
+
       } catch (err) {
         console.error(`Failed to add ${student.studentName}`, err);
       }
