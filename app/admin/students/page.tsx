@@ -32,9 +32,51 @@ const Students = () => {
   const [excelOpen, setExcelOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState('')
 
   const [dbUpdate, setDbUpdate] = useState(false);
   const [updateCounter, setUpdateCounter] = useState(0);
+
+  const getUniqueBranches = (students: any[]) => {
+    const branches = students.map((student: { branch: any }) => student.branch).filter((branch: any) => branch);
+    return [...new Set(branches)].sort();
+  };
+
+  const branchDisplayNames = {
+    'cse': 'Computer Science & Engineering',
+    'ise': 'Information Science & Engineering',
+    'ece': 'Electronics & Communication Engineering',
+    'eee': 'Electrical & Electronics Engineering',
+    'mech': 'Mechanical Engineering',
+    'civil': 'Civil Engineering',
+    'it': 'Information Technology',
+    'ai': 'Artificial Intelligence',
+    'ds': 'Data Science',
+    'mca': 'Master of Computer Applications',
+    'mba': 'Master of Business Administration',
+    'bca': 'Bachelor of Computer Applications',
+    'bba': 'Bachelor of Business Administration',
+    'btech': 'Bachelor of Technology',
+    'mtech': 'Master of Technology',
+    'phd': 'Doctor of Philosophy',
+    'bsc': 'Bachelor of Science',
+    'msc': 'Master of Science',
+    'electronics & communication': 'Electronics & Communication Engineering',
+    'computer science': 'Computer Science & Engineering',
+    'mechanical engineering': 'Mechanical Engineering',
+    'electrical engineering': 'Electrical & Electronics Engineering',
+    'information technology': 'Information Technology',
+    'artificial intelligence': 'Artificial Intelligence',
+    'data science': 'Data Science',
+  };
+
+  const getBranchDisplayName = (branch: string) => {
+    if (!branch) return '';
+    const lowerBranch = branch.toLowerCase();
+    return branchDisplayNames[lowerBranch as keyof typeof branchDisplayNames] || branch;
+  };
+
+  const uniqueBranches = getUniqueBranches(students);
 
   const uploadToDB = async () => {
     setDbUpdate(true);
@@ -66,12 +108,15 @@ const Students = () => {
     }
   };
 
-
-  const filteredStudents = students.filter(student =>
+  const searchFilteredStudents = students.filter(student =>
     student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.usn.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.branch.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  );
+
+  const filteredStudents = selectedBranchFilter 
+    ? searchFilteredStudents.filter(student => student.branch === selectedBranchFilter)
+    : searchFilteredStudents;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -309,16 +354,38 @@ const Students = () => {
                     required
                   >
                     <option value="">Select Branch</option>
-                    <option value="cse">Computer Science & Engineering</option>
-                    <option value="ise">Information Science & Engineering</option>
-                    <option value="ece">Electronics & Communication Engineering</option>
-                    <option value="eee">Electrical & Electronics Engineering</option>
-                    <option value="mech">Mechanical Engineering</option>
-                    <option value="civil">Civil Engineering</option>
-                    <option value="it">Information Technology</option>
-                    <option value="ai">Artificial Intelligence</option>
-                    <option value="ds">Data Science</option>
+                    {uniqueBranches.length > 0 && uniqueBranches.map(branchCode => (
+                      <option key={branchCode as string} value={branchCode as string}>
+                        {getBranchDisplayName(branchCode as string)}
+                      </option>
+                    ))}
+                    {uniqueBranches.length === 0 && (
+                      <>
+                        <option value="cse">Computer Science & Engineering</option>
+                        <option value="ise">Information Science & Engineering</option>
+                        <option value="ece">Electronics & Communication Engineering</option>
+                        <option value="eee">Electrical & Electronics Engineering</option>
+                        <option value="mech">Mechanical Engineering</option>
+                        <option value="civil">Civil Engineering</option>
+                        <option value="it">Information Technology</option>
+                        <option value="ai">Artificial Intelligence</option>
+                        <option value="ds">Data Science</option>
+                        <option value="mca">Master of Computer Applications</option>
+                        <option value="mba">Master of Business Administration</option>
+                        <option value="bca">Bachelor of Computer Applications</option>
+                      </>
+                    )}
+                    <option value="custom">Other (Enter Custom Branch)</option>
                   </select>
+                  {formData.branch === 'custom' && (
+                    <input
+                      type="text"
+                      name="customBranch"
+                      placeholder="Enter custom branch name"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors mt-2"
+                      onChange={(e) => setFormData(prev => ({ ...prev, branch: e.target.value }))}
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -363,8 +430,6 @@ const Students = () => {
         )}
       </div>
 
-
-      {/* Excel Import Section */}
       <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200">
         <button
           onClick={() => setExcelOpen(prev => !prev)}
@@ -416,7 +481,6 @@ const Students = () => {
               </div>
             </label>
 
-
             {uploadError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-700 text-sm">{uploadError}</p>
@@ -437,7 +501,6 @@ const Students = () => {
         )}
       </div>
 
-      {/* Students List */}
       {students.length > 0 && (
         <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-6">
@@ -458,14 +521,32 @@ const Students = () => {
             </button>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 flex flex-col sm:flex-row gap-4">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, USN or branch..."
-              className="w-full md:w-72 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 sm:flex-initial sm:w-72 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            
+            {uniqueBranches.length > 0 && (
+              <select
+                value={selectedBranchFilter}
+                onChange={(e) => setSelectedBranchFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">All Branches ({students.length})</option>
+                {uniqueBranches.map(branchCode => {
+                  const branchCount = students.filter(s => s.branch === branchCode).length;
+                  return (
+                    <option key={String(branchCode)} value={String(branchCode)}>
+                      {getBranchDisplayName(branchCode as string)} ({branchCount})
+                    </option>
+                  );
+                })}
+              </select>
+            )}
           </div>
 
           <div className="overflow-x-scroll">
@@ -488,7 +569,9 @@ const Students = () => {
                       <span className="px-3 py-1 text-blue-800 rounded-full capitalize">{student.gender}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-3 text-teal-800 rounded-full capitalize">{student.branch}</span>
+                      <span className="px-3 text-teal-800 rounded-full capitalize" title={getBranchDisplayName(student.branch)}>
+                        {student.branch}
+                      </span>
                     </td>
                     <td className="px-4 py-3 rounded-r-lg">
                       <span className="px-3 text-indigo-800 rounded-full">{student.year}</span>
@@ -500,14 +583,18 @@ const Students = () => {
             </table>
 
             {filteredStudents.length === 0 && (
-              <div className="text-center text-gray-500 mt-6">No matching students found.</div>
+              <div className="text-center text-gray-500 mt-6">
+                {selectedBranchFilter 
+                  ? `No students found in ${getBranchDisplayName(selectedBranchFilter)} branch.`
+                  : 'No matching students found.'
+                }
+              </div>
             )}
 
             <button
               onClick={uploadToDB}
               className="flex items-center justify-center gap-2 mx-auto mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
             >
-              {/* Update Students */}
               {dbUpdate ? `Updating Student... [${updateCounter}/${students.length}]` : 'Update Students'}
             </button>
           </div>
