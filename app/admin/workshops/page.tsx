@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import { Calendar, BookOpen, User, FileSignature, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Calendar, BookOpen, User, FileSignature, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X, View, Eye } from 'lucide-react'
 
 const Workshops = () => {
   const [formData, setFormData] = useState({
@@ -195,7 +195,7 @@ const Workshops = () => {
                   <label className="block border-2 border-dashed border-gray-300 rounded-lg p-3 md:p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept=".png"
                       onChange={(e) => handleFileUpload(e, 'personSignature')}
                       className="hidden"
                       required
@@ -296,7 +296,7 @@ const Workshops = () => {
                           onClick={() => openWorkshopDetails(workshop)}
                           className="text-blue-600 hover:text-blue-800"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(workshop.id)}
