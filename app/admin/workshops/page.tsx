@@ -1,7 +1,17 @@
 "use client"
 
-import { useState } from 'react'
-import { Calendar, BookOpen, User, FileSignature, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X, View, Eye } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Calendar, BookOpen, User, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X, Eye } from 'lucide-react'
+import { motion } from 'framer-motion'
+
+interface TextElement {
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  fontFamily: string;
+}
 
 const Workshops = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +26,19 @@ const Workshops = () => {
   const [listOpen, setListOpen] = useState(true)
   const [selectedWorkshop, setSelectedWorkshop] = useState<any>(null)
   const [showModal, setShowModal] = useState(false)
+  const [templatePreview, setTemplatePreview] = useState<string | null>(null)
+  const [showEditor, setShowEditor] = useState<boolean>(false);
+
+  const [textElement, setTextElement] = useState<TextElement>({
+    text: 'Student_Name',
+    x: 50,
+    y: 50,
+    fontSize: 24,
+    color: '#000000',
+    fontFamily: 'Arial'
+  })
+
+  const canvasRef = useRef<HTMLDivElement>(null)
 
   const [workshops, setWorkshops] = useState([
     {
@@ -33,14 +56,6 @@ const Workshops = () => {
       date: '2023-06-22',
       department: 'Data Science',
       certificateTemplate: 'datascience_certificate.png',
-    },
-    {
-      id: 3,
-      workshopName: 'UI/UX Design Principles',
-      resourcePerson: 'Ms. Emily Rodriguez',
-      date: '2023-07-10',
-      department: 'Design',
-      certificateTemplate: 'design_certificate.png',
     }
   ])
 
@@ -52,12 +67,21 @@ const Workshops = () => {
     }))
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
       setFormData(prev => ({
         ...prev,
-        [field]: e.target.files![0]
+        certificateTemplate: file
       }))
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setTemplatePreview(event.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      setShowEditor(true);
     }
   }
 
@@ -72,13 +96,18 @@ const Workshops = () => {
       certificateTemplate: formData.certificateTemplate?.name || 'template.png',
     }
     setWorkshops([...workshops, newWorkshop])
-    setFormData({
-      workshopName: '',
-      resourcePerson: '',
-      date: '',
-      department: '',
-      certificateTemplate: null
-    })
+
+    // setFormData({
+    //   workshopName: '',
+    //   resourcePerson: '',
+    //   date: '',
+    //   department: '',
+    //   certificateTemplate: null
+    // })
+
+    console.log(workshops);
+    console.log(textElement);
+
   }
 
   const handleDelete = (id: number) => {
@@ -90,11 +119,49 @@ const Workshops = () => {
     setShowModal(true)
   }
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, field: string) => {
+    let value: string | number = e.target.value
+
+    if (field === 'fontSize' || field === 'x' || field === 'y') {
+      value = parseFloat(value)
+    }
+
+    setTextElement(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleDragEnd = (e: any) => {
+    if (!canvasRef.current) return
+
+    const canvasRect = canvasRef.current.getBoundingClientRect()
+    const xPercent = ((e.clientX - canvasRect.left) / canvasRect.width) * 100
+    const yPercent = ((e.clientY - canvasRect.top) / canvasRect.height) * 100
+
+    setTextElement(prev => ({
+      ...prev,
+      x: xPercent,
+      y: yPercent
+    }))
+  }
+
+  // const saveTemplateData = () => {
+  //   const templateData = {
+  //     imageUrl: templatePreview,
+  //     textElement,
+  //     workshopId: selectedWorkshop?.id || null
+  //   }
+
+  //   console.log('Saving to DB:', templateData)
+  //   alert('Template data saved successfully!')
+  // }
+
   return (
     <section className="text-black space-y-8">
       <div className="mb-8">
         <h3 className="text-2xl font-bold text-gray-800 mb-2">Workshop Management</h3>
-        <p className="text-gray-600">Add workshop details including workshop information, resource person details, certificate template, and participants list.</p>
+        <p className="text-gray-600">Add workshop details including workshop information and certificate template.</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -121,7 +188,7 @@ const Workshops = () => {
                 <div className="space-y-2">
                   <label className="text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2">
                     <BookOpen className="w-3 h-3 md:w-4 md:h-4" />
-                    Workshop/Session Name *
+                    Workshop Name *
                   </label>
                   <input
                     type="text"
@@ -153,7 +220,7 @@ const Workshops = () => {
                 <div className="space-y-2">
                   <label className="text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2">
                     <BookOpen className="w-3 h-3 md:w-4 md:h-4" />
-                    Organized Department *
+                    Department *
                   </label>
                   <input
                     type="text"
@@ -190,7 +257,7 @@ const Workshops = () => {
                     <input
                       type="file"
                       accept=".png"
-                      onChange={(e) => handleFileUpload(e, 'certificateTemplate')}
+                      onChange={handleFileUpload}
                       className="hidden"
                       required
                     />
@@ -205,19 +272,144 @@ const Workshops = () => {
                 </div>
               </div>
 
-              <div className="flex w-full justify-center">
-                <button
-                  type="submit"
-                  className="px-4 py-2 md:px-6 md:py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm md:text-base"
-                >
-                  <Upload className="w-4 h-4 md:w-5 md:h-5" />
-                  Upload Workshop Details
-                </button>
-              </div>
+
             </div>
           </form>
         )}
       </div>
+
+      {showEditor && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-[80vh] md:h-[90vh] flex flex-col p-[2.5%] gap-4">
+          <div className='flex w-full gap-4 md:flex-row flex-col'>
+            <div
+              ref={canvasRef}
+              className='h-[60%] md:h-full w-full md:w-[75%] bg-gray-100 relative overflow-hidden'
+              style={{
+                backgroundImage: templatePreview ? `url(${templatePreview})` : 'none',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center'
+              }}
+            >
+              <motion.div
+                className='absolute cursor-move text-center w-[80%] ring-2 ring-blue-500'
+                style={{
+                  left: `${textElement.x | 0}%`,
+                  top: `${textElement.y | 0}%`,
+                  fontSize: `${textElement.fontSize}px`,
+                  color: textElement.color,
+                  fontFamily: textElement.fontFamily,
+                  padding: '4px',
+                  backgroundColor: 'rgba(0,0,0,0.)',
+                  transform: 'translate(-50%, -50%)'
+                }}
+                drag
+                dragConstraints={canvasRef}
+                dragMomentum={false}
+                onDragEnd={handleDragEnd}
+              >
+                {textElement.text}
+              </motion.div>
+            </div>
+
+            <div className='h-fit md:h-full w-full md:w-[25%] bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-y-auto'>
+              <div className="space-y-4">
+                <h3 className="font-medium">Text Element</h3>
+
+                <div className="space-y-3 bg-white p-3 rounded border border-gray-200">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Text Content</label>
+                    <input
+                      type="text"
+                      value={textElement.text}
+                      onChange={(e) => handleTextChange(e, 'text')}
+                      className="w-full px-2 py-1 border border-gray-300 rounded"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Font Size</label>
+                    <input
+                      type="number"
+                      value={textElement.fontSize}
+                      onChange={(e) => handleTextChange(e, 'fontSize')}
+                      className="w-full px-2 py-1 border border-gray-300 rounded"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Font Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={textElement.color}
+                        onChange={(e) => handleTextChange(e, 'color')}
+                        className="w-8 h-8"
+                      />
+                      <span className="text-sm truncate">{textElement.color}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Font Family</label>
+                    <select
+                      value={textElement.fontFamily}
+                      onChange={(e) => handleTextChange(e, 'fontFamily')}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="Arial">Arial</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Verdana">Verdana</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">X Position (%)</label>
+                      <input
+                        type="number"
+                        value={textElement.x}
+                        onChange={(e) => handleTextChange(e, 'x')}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Y Position (%)</label>
+                      <input
+                        type="number"
+                        value={textElement.y}
+                        onChange={(e) => handleTextChange(e, 'y')}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex w-full justify-center my-auto">
+            <button
+              onClick={handleSubmit}
+              type="submit"
+              className="px-4 py-2 md:px-6 md:py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm md:text-base"
+            >
+              <Upload className="w-4 h-4 md:w-5 md:h-5" />
+              Upload Workshop Details
+            </button>
+          </div>
+
+        </div>
+
+      )}
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <button
@@ -322,60 +514,62 @@ const Workshops = () => {
         )}
       </div>
 
-      {showModal && selectedWorkshop && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-800">Workshop Details</h3>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-700">Workshop Name</h4>
-                  <p className="mt-1 text-gray-900">{selectedWorkshop.workshopName}</p>
+      {
+        showModal && selectedWorkshop && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-gray-800">Workshop Details</h3>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
 
-                <div>
-                  <h4 className="font-medium text-gray-700">Resource Person</h4>
-                  <p className="mt-1 text-gray-900">{selectedWorkshop.resourcePerson}</p>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-700">Workshop Name</h4>
+                    <p className="mt-1 text-gray-900">{selectedWorkshop.workshopName}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-700">Resource Person</h4>
+                    <p className="mt-1 text-gray-900">{selectedWorkshop.resourcePerson}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-700">Department</h4>
+                    <p className="mt-1 text-gray-900">{selectedWorkshop.department}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-700">Date</h4>
+                    <p className="mt-1 text-gray-900">{new Date(selectedWorkshop.date).toLocaleDateString()}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-700">Certificate Template</h4>
+                    <p className="mt-1 text-gray-900">{selectedWorkshop.certificateTemplate}</p>
+                  </div>
                 </div>
 
-                <div>
-                  <h4 className="font-medium text-gray-700">Department</h4>
-                  <p className="mt-1 text-gray-900">{selectedWorkshop.department}</p>
+                <div className="mt-6 w-full">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="px-4 w-full py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Close
+                  </button>
                 </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-700">Date</h4>
-                  <p className="mt-1 text-gray-900">{new Date(selectedWorkshop.date).toLocaleDateString()}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-700">Certificate Template</h4>
-                  <p className="mt-1 text-gray-900">{selectedWorkshop.certificateTemplate}</p>
-                </div>
-              </div>
-
-              <div className="mt-6 w-full">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-4 w-full py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Close
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </section>
+        )
+      }
+    </section >
   )
 }
 
