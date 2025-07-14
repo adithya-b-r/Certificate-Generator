@@ -7,7 +7,6 @@ const Workshops = () => {
   const [formData, setFormData] = useState({
     workshopName: '',
     resourcePerson: '',
-    personSignature: null as File | null,
     date: '',
     department: '',
     certificateTemplate: null as File | null
@@ -25,8 +24,7 @@ const Workshops = () => {
       resourcePerson: 'Dr. Sarah Johnson',
       date: '2023-05-15',
       department: 'Computer Science',
-      certificateTemplate: 'react_certificate.docx',
-      signature: 'sarah_signature.png'
+      certificateTemplate: 'react_certificate.png',
     },
     {
       id: 2,
@@ -34,8 +32,7 @@ const Workshops = () => {
       resourcePerson: 'Prof. Michael Chen',
       date: '2023-06-22',
       department: 'Data Science',
-      certificateTemplate: 'datascience_certificate.docx',
-      signature: 'chen_signature.png'
+      certificateTemplate: 'datascience_certificate.png',
     },
     {
       id: 3,
@@ -43,8 +40,7 @@ const Workshops = () => {
       resourcePerson: 'Ms. Emily Rodriguez',
       date: '2023-07-10',
       department: 'Design',
-      certificateTemplate: 'design_certificate.docx',
-      signature: 'emily_signature.png'
+      certificateTemplate: 'design_certificate.png',
     }
   ])
 
@@ -73,14 +69,12 @@ const Workshops = () => {
       resourcePerson: formData.resourcePerson,
       date: formData.date,
       department: formData.department,
-      certificateTemplate: formData.certificateTemplate?.name || 'template.docx',
-      signature: formData.personSignature?.name || 'signature.png'
+      certificateTemplate: formData.certificateTemplate?.name || 'template.png',
     }
     setWorkshops([...workshops, newWorkshop])
     setFormData({
       workshopName: '',
       resourcePerson: '',
-      personSignature: null,
       date: '',
       department: '',
       certificateTemplate: null
@@ -189,36 +183,13 @@ const Workshops = () => {
 
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <FileSignature className="w-3 h-3 md:w-4 md:h-4" />
-                    Resource Person Signature *
+                    <FileSpreadsheet className="w-3 h-3 md:w-4 md:h-4" />
+                    Certificate Template (PNG) *
                   </label>
                   <label className="block border-2 border-dashed border-gray-300 rounded-lg p-3 md:p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
                     <input
                       type="file"
                       accept=".png"
-                      onChange={(e) => handleFileUpload(e, 'personSignature')}
-                      className="hidden"
-                      required
-                    />
-                    <div className="flex flex-col items-center gap-1 md:gap-2">
-                      <Upload className="w-4 h-4 md:w-5 md:h-5 text-gray-500" />
-                      <span className="text-xs md:text-sm text-gray-700">
-                        {formData.personSignature ? formData.personSignature.name : 'Click to upload signature image'}
-                      </span>
-                      <p className="text-xs text-gray-500">Supports only PNG</p>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <FileSpreadsheet className="w-3 h-3 md:w-4 md:h-4" />
-                    Certificate Template (DOCX) *
-                  </label>
-                  <label className="block border-2 border-dashed border-gray-300 rounded-lg p-3 md:p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
-                    <input
-                      type="file"
-                      accept=".docx"
                       onChange={(e) => handleFileUpload(e, 'certificateTemplate')}
                       className="hidden"
                       required
@@ -226,9 +197,9 @@ const Workshops = () => {
                     <div className="flex flex-col items-center gap-1 md:gap-2">
                       <Upload className="w-4 h-4 md:w-5 md:h-5 text-gray-500" />
                       <span className="text-xs md:text-sm text-gray-700">
-                        {formData.certificateTemplate ? formData.certificateTemplate.name : 'Click to upload DOCX template'}
+                        {formData.certificateTemplate ? formData.certificateTemplate.name : 'Click to upload PNG template'}
                       </span>
-                      <p className="text-xs text-gray-500">Microsoft Word document (.docx)</p>
+                      <p className="text-xs text-gray-500">Accepted format: png (.png)</p>
                     </div>
                   </label>
                 </div>
@@ -389,11 +360,6 @@ const Workshops = () => {
                 <div>
                   <h4 className="font-medium text-gray-700">Certificate Template</h4>
                   <p className="mt-1 text-gray-900">{selectedWorkshop.certificateTemplate}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-700">Signature File</h4>
-                  <p className="mt-1 text-gray-900">{selectedWorkshop.signature}</p>
                 </div>
               </div>
 
