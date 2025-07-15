@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Users, Filter, Check, X, UserCheck, Search, Loader2 } from 'lucide-react'
 import { fetchStudents, fetchWorkshops } from '@/app/lib/appwrite'
+import * as XLSX from 'xlsx'
 
 interface Student {
   $id: string
@@ -136,6 +137,37 @@ const Attendees = () => {
     const absentCount = total - presentCount
 
     return { present: presentCount, absent: absentCount, total }
+  }
+
+  const exportToExcel = () => {
+    if (!selectedWorkshop || filteredStudents.length === 0) return
+
+    const workshop = workshops.find(w => w.$id === selectedWorkshop)
+    if (!workshop) return
+
+    const data = filteredStudents.map(student => {
+      const attendanceStatus = getAttendanceStatus(student.$id)
+      return {
+        'USN': student.USN,
+        'Student Name': student.studentName,
+        'Branch': student.branch,
+        'Year': student.year,
+        'Gender': student.gender,
+        'Attendance Status': attendanceStatus ? 'Present' : 'Absent',
+        'Workshop Name': workshop.workshopName,
+        'Workshop Date': new Date(workshop.date).toLocaleDateString(),
+        'Resource Person': workshop.resourcePerson,
+        'Organized Department': workshop.organizedDepartment
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(data)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Report')
+
+    const fileName = `Attendance_Report_${workshop.workshopName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date(workshop.date).toISOString().split('T')[0]}.xlsx`
+
+    XLSX.writeFile(workbook, fileName)
   }
 
   const stats = getAttendanceStats()
@@ -370,8 +402,11 @@ const Attendees = () => {
                     <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />
                     Save Attendance
                   </button>
-                  <button className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
-                    Export Report
+                  <button
+                    onClick={exportToExcel}
+                    className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    Export Report (Excel)
                   </button>
                 </div>
               </div>
