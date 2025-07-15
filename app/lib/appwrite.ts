@@ -6,9 +6,12 @@ export const config = {
   databaseId: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
   workshopsCollectionId:
     process.env.NEXT_PUBLIC_APPWRITE_WORKSHOPS_COLLECTION_ID!,
+  storageId: process.env.NEXT_PUBLIC_APPWRITE_CERTGEN_STORAGE_ID!,
+
   studentsCollectionId:
     process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
   certGenBucket: process.env.NEXT_PUBLIC_APPWRITE_CERTGEN_STORAGE_ID!,
+
   devKey: process.env.NEXT_PUBLIC_APPWRITE_DEV_KEY!,
 };
 
@@ -20,6 +23,7 @@ client
   .setDevKey(config.devKey);
 
 const databases = new Databases(client);
+const storage = new Storage(client);
 
 export const addStudent = async (
   studentName: string,
@@ -71,5 +75,50 @@ export const fetchStudents = async () => {
     return response.documents;
   } catch (err) {
     console.log("Error Fetching Students: " + err);
+  }
+};
+
+export const addWorkshop = async (
+  workshopName: string,
+  resourcePerson: string,
+  date: string,
+  department: string,
+  certificateTemplate: File,
+  textElement: {
+    text: string;
+    x: number;
+    y: number;
+    fontSize: number;
+    color: string;
+    fontFamily: string;
+  }
+) => {
+  try {
+    const uploaded = await storage.createFile(
+      config.storageId,
+      ID.unique(),
+      certificateTemplate
+    );
+
+    const fileId = uploaded.$id;
+    const fileUrl = storage.getFileView(config.storageId, fileId);
+
+    const response = await databases.createDocument(
+      config.databaseId,
+      config.workshopsCollectionId,
+      ID.unique(),
+      {
+        workshopName,
+        resourcePerson,
+        date,
+        organizedDepartment: department,
+        certificateTemplate: fileUrl,
+        textElement: JSON.stringify(textElement),
+      }
+    );
+
+    return response;
+  } catch (err) {
+    console.log("Error Adding Workshop: " + err);
   }
 };

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Calendar, BookOpen, User, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X, Eye } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { addWorkshop } from '@/app/lib/appwrite';
 
 interface TextElement {
   text: string;
@@ -11,6 +12,16 @@ interface TextElement {
   fontSize: number;
   color: string;
   fontFamily: string;
+}
+
+interface Workshop {
+  id: number;
+  workshopName: string;
+  resourcePerson: string;
+  date: string;
+  department: string;
+  certificateTemplate: string;
+  textElement: TextElement;
 }
 
 const Workshops = () => {
@@ -48,6 +59,14 @@ const Workshops = () => {
       date: '2023-05-15',
       department: 'Computer Science',
       certificateTemplate: 'react_certificate.png',
+      textElement: {
+        text: "Student_Name",
+        x: 50,
+        y: 50.2,
+        fontSize: 24,
+        color: "#000000",
+        fontFamily: "Arial",
+      }
     },
     {
       id: 2,
@@ -56,6 +75,14 @@ const Workshops = () => {
       date: '2023-06-22',
       department: 'Data Science',
       certificateTemplate: 'datascience_certificate.png',
+      textElement: {
+        text: "Student_Name",
+        x: 50,
+        y: 50.2,
+        fontSize: 24,
+        color: "#000000",
+        fontFamily: "Arial",
+      }
     }
   ])
 
@@ -85,30 +112,37 @@ const Workshops = () => {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newWorkshop = {
-      id: workshops.length + 1,
-      workshopName: formData.workshopName,
-      resourcePerson: formData.resourcePerson,
-      date: formData.date,
-      department: formData.department,
-      certificateTemplate: formData.certificateTemplate?.name || 'template.png',
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.certificateTemplate) {
+      console.warn("Certificate template file is missing.");
+      return;
     }
-    setWorkshops([...workshops, newWorkshop])
 
-    // setFormData({
-    //   workshopName: '',
-    //   resourcePerson: '',
-    //   date: '',
-    //   department: '',
-    //   certificateTemplate: null
-    // })
+    const response = await addWorkshop(
+      formData.workshopName,
+      formData.resourcePerson,
+      formData.date,
+      formData.department,
+      formData.certificateTemplate,
+      textElement
+    );
 
-    console.log(workshops);
-    console.log(textElement);
+    if (response) {
+      alert("Submitted Successfully!")
+    }
 
-  }
+    setFormData({
+      workshopName: "",
+      resourcePerson: "",
+      date: "",
+      department: "",
+      certificateTemplate: null
+    });
+
+    setShowEditor(false);
+  };
 
   const handleDelete = (id: number) => {
     setWorkshops(workshops.filter(workshop => workshop.id !== id))
