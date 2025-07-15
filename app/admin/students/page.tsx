@@ -576,7 +576,7 @@ const Students = () => {
                   const branchCount = students.filter(s => s.branch === branchCode).length;
                   return (
                     <option key={String(branchCode)} value={String(branchCode)}>
-                      {getBranchDisplayName(branchCode as string)} ({branchCount})
+                      {branchCode} ({branchCount})
                     </option>
                   );
                 })}
@@ -632,7 +632,7 @@ const Students = () => {
             {filteredStudents.length === 0 && (
               <div className="text-center text-gray-500 mt-6">
                 {selectedBranchFilter
-                  ? `No students found in ${getBranchDisplayName(selectedBranchFilter)} branch.`
+                  ? `No students found in ${selectedBranchFilter} branch.`
                   : 'No matching students found.'
                 }
               </div>
