@@ -598,7 +598,7 @@ const Students = () => {
               </thead>
               <tbody>
                 {filteredStudents.map((student, index) => (
-                  <tr key={student.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg shadow-sm">
+                  <tr key={student.$id} className="bg-gray-50 hover:bg-gray-100 rounded-lg shadow-sm">
                     <td className="px-4 py-3 text-gray-900 font-medium rounded-l-lg">{student.studentName}</td>
                     <td className="px-4 py-3 text-gray-700">{student.USN}</td>
                     <td className="px-4 py-3">
