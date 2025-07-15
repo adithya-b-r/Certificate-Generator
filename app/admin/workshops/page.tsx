@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Calendar, BookOpen, User, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X, Eye } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { addWorkshop } from '@/app/lib/appwrite';
+import { addWorkshop, fetchWorkshops } from '@/app/lib/appwrite';
 
 interface TextElement {
   text: string;
@@ -25,32 +25,6 @@ interface Workshop {
 }
 
 const Workshops = () => {
-  const [formData, setFormData] = useState({
-    workshopName: '',
-    resourcePerson: '',
-    date: '',
-    department: '',
-    certificateTemplate: null as File | null
-  })
-
-  const [formOpen, setFormOpen] = useState(true)
-  const [listOpen, setListOpen] = useState(true)
-  const [selectedWorkshop, setSelectedWorkshop] = useState<any>(null)
-  const [showModal, setShowModal] = useState(false)
-  const [templatePreview, setTemplatePreview] = useState<string | null>(null)
-  const [showEditor, setShowEditor] = useState<boolean>(false);
-
-  const [textElement, setTextElement] = useState<TextElement>({
-    text: 'Student_Name',
-    x: 50,
-    y: 50,
-    fontSize: 24,
-    color: '#000000',
-    fontFamily: 'Arial'
-  })
-
-  const canvasRef = useRef<HTMLDivElement>(null)
-
   const [workshops, setWorkshops] = useState([
     {
       id: 1,
@@ -85,6 +59,63 @@ const Workshops = () => {
       }
     }
   ])
+
+  useEffect(() => {
+
+    const getWorkshops = async () => {
+      const data = await fetchWorkshops();
+
+      if (data && Array.isArray(data.documents)) {
+        const mappedWorkshops = data.documents.map((doc: any, idx: number) => ({
+          id: doc.id ?? idx + 1,
+          workshopName: doc.workshopName ?? "",
+          resourcePerson: doc.resourcePerson ?? "",
+          date: doc.date ?? "",
+          department: doc.organizedDepartment ?? "",
+          certificateTemplate: doc.certificateTemplate ?? "",
+          textElement: doc.textElement ?? {
+            text: "Student_Name",
+            x: 50,
+            y: 50,
+            fontSize: 24,
+            color: "#000000",
+            fontFamily: "Arial"
+          }
+        }));
+        setWorkshops(mappedWorkshops);
+      }
+
+      console.log(data);
+    }
+
+    getWorkshops();
+  }, []);
+
+  const [formData, setFormData] = useState({
+    workshopName: '',
+    resourcePerson: '',
+    date: '',
+    department: '',
+    certificateTemplate: null as File | null
+  })
+
+  const [formOpen, setFormOpen] = useState(true)
+  const [listOpen, setListOpen] = useState(true)
+  const [selectedWorkshop, setSelectedWorkshop] = useState<any>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [templatePreview, setTemplatePreview] = useState<string | null>(null)
+  const [showEditor, setShowEditor] = useState<boolean>(false);
+
+  const [textElement, setTextElement] = useState<TextElement>({
+    text: 'Student_Name',
+    x: 50,
+    y: 50,
+    fontSize: 24,
+    color: '#000000',
+    fontFamily: 'Arial'
+  })
+
+  const canvasRef = useRef<HTMLDivElement>(null)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -130,7 +161,18 @@ const Workshops = () => {
     );
 
     if (response) {
-      alert("Submitted Successfully!")
+      alert("Submitted Successfully!");
+      setWorkshops(prev => [...prev, {
+        id: Number(response.$id),
+        workshopName: response.workshopName,
+        resourcePerson: response.resourcePerson,
+        date: response.date,
+        department: response.organizedDepartment,
+        certificateTemplate: response.certificateTemplate,
+        textElement: typeof response.textElement === "string"
+          ? JSON.parse(response.textElement)
+          : response.textElement
+      }]);
     }
 
     setFormData({
@@ -143,6 +185,7 @@ const Workshops = () => {
 
     setShowEditor(false);
   };
+
 
   const handleDelete = (id: number) => {
     setWorkshops(workshops.filter(workshop => workshop.id !== id))
@@ -586,7 +629,7 @@ const Workshops = () => {
 
                   <div>
                     <h4 className="font-medium text-gray-700">Certificate Template</h4>
-                    <p className="mt-1 text-gray-900">{selectedWorkshop.certificateTemplate}</p>
+                    <a className="mt-1 text-blue-600 underline" href={selectedWorkshop.certificateTemplate} target='_blank'>View Template</a>
                   </div>
                 </div>
 

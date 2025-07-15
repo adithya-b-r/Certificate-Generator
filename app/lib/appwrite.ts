@@ -122,3 +122,18 @@ export const addWorkshop = async (
     console.log("Error Adding Workshop: " + err);
   }
 };
+
+export const fetchWorkshops = async () => {
+  try {
+
+    const res = await databases.listDocuments(
+      config.databaseId,
+      config.workshopsCollectionId,
+    );
+
+    return { documents: res.documents };
+  } catch (error) {
+    // console.error("Error fetching submissions:", error);
+    return { documents: [], error };
+  }
+};
