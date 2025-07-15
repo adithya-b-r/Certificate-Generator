@@ -1,20 +1,24 @@
 "use client"
 
-import { useState } from 'react'
-import { Calendar, Users, Filter, Check, X, UserCheck, Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Calendar, Users, Filter, Check, X, UserCheck, Search, Loader2 } from 'lucide-react'
+import { fetchStudents, fetchWorkshops } from '@/app/lib/appwrite'
 
 interface Student {
-  id: string
-  name: string
-  usn: string
-  branch: string
+  $id: string
+  studentName: string
+  USN: string
+  branch: number
+  year: number
+  gender: string
 }
 
 interface Workshop {
-  id: string
-  name: string
+  $id: string
+  workshopName: string
   date: string
-  description: string
+  resourcePerson: string
+  organizedDepartment: string
 }
 
 interface AttendanceRecord {
@@ -24,44 +28,65 @@ interface AttendanceRecord {
 }
 
 const Attendees = () => {
-  const [workshops] = useState<Workshop[]>([
-    {
-      id: '1',
-      name: 'Web Development Fundamentals',
-      date: '2024-03-15',
-      description: 'Introduction to HTML, CSS, and JavaScript'
-    },
-    {
-      id: '2',
-      name: 'React & Modern JavaScript',
-      date: '2024-03-22',
-      description: 'Building interactive web applications'
-    },
-    {
-      id: '3',
-      name: 'Database Design Workshop',
-      date: '2024-03-29',
-      description: 'SQL and database optimization techniques'
-    }
-  ])
-
-  const [students] = useState<Student[]>([
-    { id: '1', name: 'Arjun Kumar', usn: '1AB21CS001', branch: 'CSE' },
-    { id: '2', name: 'Priya Sharma', usn: '1AB21CS002', branch: 'CSE' },
-    { id: '3', name: 'Rahul Verma', usn: '1AB21IS003', branch: 'ISE' },
-    { id: '4', name: 'Sneha Patel', usn: '1AB21EC004', branch: 'ECE' },
-    { id: '5', name: 'Vikram Singh', usn: '1AB21CS005', branch: 'CSE' },
-    { id: '6', name: 'Ananya Reddy', usn: '1AB21IS006', branch: 'ISE' },
-    { id: '7', name: 'Karthik Nair', usn: '1AB21EC007', branch: 'ECE' },
-    { id: '8', name: 'Meera Gupta', usn: '1AB21CS008', branch: 'CSE' }
-  ])
-
+  const [workshops, setWorkshops] = useState<Workshop[]>([])
+  const [students, setStudents] = useState<Student[]>([])
+  const [branches, setBranches] = useState<string[]>(['All Branches'])
+  const [loading, setLoading] = useState(true)
   const [selectedWorkshop, setSelectedWorkshop] = useState<string>('')
-  const [selectedBranch, setSelectedBranch] = useState<string>('')
+  const [selectedBranch, setSelectedBranch] = useState<string>('All Branches')
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
 
-  const branches = ['All Branches', 'CSE', 'ISE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AI', 'DS']
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const [studentsData, workshopsData] = await Promise.all([
+          fetchStudents(),
+          fetchWorkshops()
+        ])
+
+        if (studentsData) {
+          const studentsArray = studentsData.map((doc: any) => ({
+            $id: doc.$id,
+            studentName: doc.studentName,
+            USN: doc.USN,
+            branch: doc.branch,
+            year: doc.year,
+            gender: doc.gender
+          }))
+
+          setStudents(studentsArray)
+
+          const uniqueBranches = [...new Set(studentsArray
+            .map((student: Student) => student.branch)
+            .filter((branch: any) => branch !== undefined && branch !== null && branch !== '')
+          )].map(branch => String(branch))
+
+          const sortedBranches = ['All Branches', ...uniqueBranches.sort()]
+          setBranches(sortedBranches)
+        }
+
+        if (workshopsData?.documents) {
+          setWorkshops(
+            workshopsData.documents.map((doc: any) => ({
+              $id: doc.$id,
+              workshopName: doc.workshopName,
+              date: doc.date,
+              resourcePerson: doc.resourcePerson,
+              organizedDepartment: doc.organizedDepartment
+            }))
+          )
+        }
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
 
   const handleAttendanceChange = (studentId: string, attended: boolean) => {
     if (!selectedWorkshop) return
@@ -92,24 +117,41 @@ const Attendees = () => {
   }
 
   const filteredStudents = students.filter(student => {
-    const matchesBranch = selectedBranch === '' || selectedBranch === 'All Branches' || student.branch === selectedBranch
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          student.usn.toLowerCase().includes(searchTerm.toLowerCase())
+    const studentBranch = student.branch || 'Unknown'
+    const matchesBranch = selectedBranch === 'All Branches' || studentBranch === selectedBranch
+    const matchesSearch = student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.USN.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesBranch && matchesSearch
   })
 
   const getAttendanceStats = () => {
     if (!selectedWorkshop) return { present: 0, absent: 0, total: 0 }
 
-    const workshopAttendance = attendance.filter(record => record.workshopId === selectedWorkshop)
-    const present = workshopAttendance.filter(record => record.attended).length
     const total = filteredStudents.length
-    const absent = total - present
 
-    return { present, absent, total }
+    const presentCount = filteredStudents.filter(student =>
+      getAttendanceStatus(student.$id)
+    ).length
+
+    const absentCount = total - presentCount
+
+    return { present: presentCount, absent: absentCount, total }
   }
 
   const stats = getAttendanceStats()
+
+  if (loading) {
+    return (
+      <section className="text-black">
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Loading workshops and students...</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="text-black">
@@ -136,8 +178,8 @@ const Attendees = () => {
         >
           <option value="">Select a workshop...</option>
           {workshops.map(workshop => (
-            <option key={workshop.id} value={workshop.id}>
-              {workshop.name} - {new Date(workshop.date).toLocaleDateString()}
+            <option key={workshop.$id} value={workshop.$id}>
+              {workshop.workshopName} - {new Date(workshop.date).toLocaleDateString()}
             </option>
           ))}
         </select>
@@ -145,13 +187,16 @@ const Attendees = () => {
         {selectedWorkshop && (
           <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 rounded-lg">
             <h5 className="font-semibold text-sm sm:text-base text-blue-900 mb-1">
-              {workshops.find(w => w.id === selectedWorkshop)?.name}
+              {workshops.find(w => w.$id === selectedWorkshop)?.workshopName}
             </h5>
             <p className="text-xs sm:text-sm text-blue-700">
-              {workshops.find(w => w.id === selectedWorkshop)?.description}
+              Resource Person: {workshops.find(w => w.$id === selectedWorkshop)?.resourcePerson}
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              Date: {new Date(workshops.find(w => w.id === selectedWorkshop)?.date || '').toLocaleDateString()}
+              Date: {new Date(workshops.find(w => w.$id === selectedWorkshop)?.date || '').toLocaleDateString()}
+            </p>
+            <p className="text-xs text-blue-600">
+              Department: {workshops.find(w => w.$id === selectedWorkshop)?.organizedDepartment}
             </p>
           </div>
         )}
@@ -263,45 +308,49 @@ const Attendees = () => {
                 <div className="space-y-2 sm:space-y-3">
                   {filteredStudents.map(student => (
                     <div
-                      key={student.id}
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 ${getAttendanceStatus(student.id)
-                          ? 'bg-green-50 border-green-200'
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                      key={student.$id}
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 ${getAttendanceStatus(student.$id)
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                         }`}
                     >
                       <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-0">
-                        <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-white ${getAttendanceStatus(student.id)
-                            ? 'bg-green-500'
-                            : 'bg-gray-400'
+                        <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-white ${getAttendanceStatus(student.$id)
+                          ? 'bg-green-500'
+                          : 'bg-gray-400'
                           }`}>
-                          {student.name.split(' ').map(n => n[0]).join('')}
+                          {student.studentName.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
-                          <div></div>
-                          <h5 className="font-semibold text-sm sm:text-base text-gray-900">{student.name}</h5>
-                          <p className="text-xs sm:text-sm text-gray-600">{student.usn}</p>
-                          <span className="inline-block px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                            {student.branch}
-                          </span>
+                          <h5 className="font-semibold text-sm sm:text-base text-gray-900">{student.studentName}</h5>
+                          <p className="text-xs sm:text-sm text-gray-600">{student.USN}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-block px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                              {student.branch || 'Unknown'}
+                            </span>
+                            <span className="inline-block px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                              Year {student.year}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
                         <button
-                          onClick={() => handleAttendanceChange(student.id, true)}
-                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${getAttendanceStatus(student.id)
-                              ? 'bg-green-500 text-white shadow-md'
-                              : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
+                          onClick={() => handleAttendanceChange(student.$id, true)}
+                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${getAttendanceStatus(student.$id)
+                            ? 'bg-green-500 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
                             }`}
                         >
                           <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>Present</span>
                         </button>
                         <button
-                          onClick={() => handleAttendanceChange(student.id, false)}
-                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${!getAttendanceStatus(student.id)
-                              ? 'bg-red-500 text-white shadow-md'
-                              : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'
+                          onClick={() => handleAttendanceChange(student.$id, false)}
+                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${!getAttendanceStatus(student.$id)
+                            ? 'bg-red-500 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'
                             }`}
                         >
                           <X className="w-3 h-3 sm:w-4 sm:h-4" />
