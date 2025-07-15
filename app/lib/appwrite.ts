@@ -137,3 +137,16 @@ export const fetchWorkshops = async () => {
     return { documents: [], error };
   }
 };
+
+export const deleteWorkshop = async (workshopId: string) => {
+  try {
+    const res = await databases.deleteDocument(
+      config.databaseId,
+      config.workshopsCollectionId,
+      workshopId
+    );
+    return res;
+  } catch (err) {
+    console.log("Error Deleting Student: " + err);
+  }
+};

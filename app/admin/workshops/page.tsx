@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Calendar, BookOpen, User, FileSpreadsheet, Upload, Plus, Trash2, Edit, ChevronDown, ChevronUp, X, Eye } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { addWorkshop, fetchWorkshops } from '@/app/lib/appwrite';
+import { addWorkshop, deleteWorkshop, fetchWorkshops } from '@/app/lib/appwrite';
 
 interface TextElement {
   text: string;
@@ -15,7 +15,7 @@ interface TextElement {
 }
 
 interface Workshop {
-  id: number;
+  id: string;
   workshopName: string;
   resourcePerson: string;
   date: string;
@@ -25,40 +25,7 @@ interface Workshop {
 }
 
 const Workshops = () => {
-  const [workshops, setWorkshops] = useState([
-    {
-      id: 1,
-      workshopName: 'Advanced React Techniques',
-      resourcePerson: 'Dr. Sarah Johnson',
-      date: '2023-05-15',
-      department: 'Computer Science',
-      certificateTemplate: 'react_certificate.png',
-      textElement: {
-        text: "Student_Name",
-        x: 50,
-        y: 50.2,
-        fontSize: 24,
-        color: "#000000",
-        fontFamily: "Arial",
-      }
-    },
-    {
-      id: 2,
-      workshopName: 'Data Science Fundamentals',
-      resourcePerson: 'Prof. Michael Chen',
-      date: '2023-06-22',
-      department: 'Data Science',
-      certificateTemplate: 'datascience_certificate.png',
-      textElement: {
-        text: "Student_Name",
-        x: 50,
-        y: 50.2,
-        fontSize: 24,
-        color: "#000000",
-        fontFamily: "Arial",
-      }
-    }
-  ])
+  const [workshops, setWorkshops] = useState<Workshop[]>([])
 
   useEffect(() => {
 
@@ -67,7 +34,7 @@ const Workshops = () => {
 
       if (data && Array.isArray(data.documents)) {
         const mappedWorkshops = data.documents.map((doc: any, idx: number) => ({
-          id: doc.id ?? idx + 1,
+          id: doc.$id ?? idx + 1,
           workshopName: doc.workshopName ?? "",
           resourcePerson: doc.resourcePerson ?? "",
           date: doc.date ?? "",
@@ -85,7 +52,7 @@ const Workshops = () => {
         setWorkshops(mappedWorkshops);
       }
 
-      console.log(data);
+      // console.log(data);
     }
 
     getWorkshops();
@@ -163,7 +130,7 @@ const Workshops = () => {
     if (response) {
       alert("Submitted Successfully!");
       setWorkshops(prev => [...prev, {
-        id: Number(response.$id),
+        id: response.$id,
         workshopName: response.workshopName,
         resourcePerson: response.resourcePerson,
         date: response.date,
@@ -187,8 +154,14 @@ const Workshops = () => {
   };
 
 
-  const handleDelete = (id: number) => {
-    setWorkshops(workshops.filter(workshop => workshop.id !== id))
+  const handleDelete = (id: string) => {
+    const res = confirm("Are you sure you want to delete this workshop?");
+
+    if (res) {
+      // console.log(id)
+      deleteWorkshop(id)
+      setWorkshops(workshops.filter(workshop => workshop.id !== id))
+    }
   }
 
   const openWorkshopDetails = (workshop: any) => {
