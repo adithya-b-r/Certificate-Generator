@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, Users, Filter, Check, X, UserCheck, Search, Loader2 } from 'lucide-react'
-import { fetchStudents, fetchWorkshops } from '@/app/lib/appwrite'
+import { fetchStudents, fetchWorkshops, setWorkshopAttendance } from '@/app/lib/appwrite'
 import * as XLSX from 'xlsx'
 
 interface Student {
@@ -90,24 +90,23 @@ const Attendees = () => {
   }, [])
 
   const handleAttendanceChange = (studentId: string, attended: boolean) => {
-    if (!selectedWorkshop) return
+    if (!selectedWorkshop) return;
 
     setAttendance(prev => {
-      const existingRecord = prev.find(
-        record => record.studentId === studentId && record.workshopId === selectedWorkshop
-      )
+      const existingIndex = prev.findIndex(
+        record => record.studentId === studentId &&
+          record.workshopId === selectedWorkshop
+      );
 
-      if (existingRecord) {
-        return prev.map(record =>
-          record.studentId === studentId && record.workshopId === selectedWorkshop
-            ? { ...record, attended }
-            : record
-        )
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], attended };
+        return updated;
       } else {
-        return [...prev, { studentId, workshopId: selectedWorkshop, attended }]
+        return [...prev, { studentId, workshopId: selectedWorkshop, attended }];
       }
-    })
-  }
+    });
+  };
 
   const getAttendanceStatus = (studentId: string) => {
     if (!selectedWorkshop) return false
@@ -138,6 +137,25 @@ const Attendees = () => {
 
     return { present: presentCount, absent: absentCount, total }
   }
+
+  const updateAttendance = async () => {
+    try {
+      const attendingStudents = attendance
+        .filter(record =>
+          record.workshopId === selectedWorkshop &&
+          record.attended
+        )
+        .map(record => record.studentId);
+
+      await setWorkshopAttendance(selectedWorkshop, attendingStudents);
+
+      console.log("Attendance saved:", attendingStudents);
+      alert("Attendance saved successfully!");
+    } catch (err) {
+      console.error("Failed to save attendance:", err);
+      alert("Failed to save attendance");
+    }
+  };
 
   const exportToExcel = () => {
     if (!selectedWorkshop || filteredStudents.length === 0) return
@@ -398,7 +416,7 @@ const Attendees = () => {
             {filteredStudents.length > 0 && (
               <div className="p-4 sm:p-6 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4">
-                  <button className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg">
+                  <button onClick={updateAttendance} className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg">
                     <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />
                     Save Attendance
                   </button>

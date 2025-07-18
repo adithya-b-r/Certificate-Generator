@@ -125,10 +125,9 @@ export const addWorkshop = async (
 
 export const fetchWorkshops = async () => {
   try {
-
     const res = await databases.listDocuments(
       config.databaseId,
-      config.workshopsCollectionId,
+      config.workshopsCollectionId
     );
 
     return { documents: res.documents };
@@ -148,5 +147,26 @@ export const deleteWorkshop = async (workshopId: string) => {
     return res;
   } catch (err) {
     console.log("Error Deleting Student: " + err);
+  }
+};
+
+export const setWorkshopAttendance = async (
+  workshopId: string,
+  attendingStudentIds: string[]
+) => {
+  try {
+    const response = await databases.updateDocument(
+      config.databaseId,
+      config.workshopsCollectionId,
+      workshopId,
+      {
+        students: attendingStudentIds,
+      }
+    );
+
+    return response;
+  } catch (err) {
+    console.log("Error setting workshop attendance: " + err);
+    throw err;
   }
 };
