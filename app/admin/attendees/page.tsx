@@ -33,7 +33,7 @@ const Attendees = () => {
   const [students, setStudents] = useState<Student[]>([])
   const [branches, setBranches] = useState<string[]>(['All Branches'])
   const [loading, setLoading] = useState(true)
-  const [selectedWorkshop, setSelectedWorkshop] = useState<string>('')
+  const [selectedWorkshop, setSelectedWorkshop] = useState<string>("")
   const [selectedBranch, setSelectedBranch] = useState<string>('All Branches')
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
