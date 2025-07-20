@@ -5,6 +5,14 @@ import { Calendar, Users, Filter, Check, X, UserCheck, Search, Loader2 } from 'l
 import { fetchStudents, fetchWorkshops, setWorkshopAttendance } from '@/app/lib/appwrite'
 import * as XLSX from 'xlsx'
 
+interface Workshop {
+  $id: string
+  workshopName: string
+  date: string
+  resourcePerson: string
+  organizedDepartment: string
+}
+
 interface Student {
   $id: string
   studentName: string
@@ -12,14 +20,7 @@ interface Student {
   branch: number
   year: number
   gender: string
-}
-
-interface Workshop {
-  $id: string
-  workshopName: string
-  date: string
-  resourcePerson: string
-  organizedDepartment: string
+  workshops: Array<Workshop>
 }
 
 interface AttendanceRecord {
@@ -54,7 +55,8 @@ const Attendees = () => {
             USN: doc.USN,
             branch: doc.branch,
             year: doc.year,
-            gender: doc.gender
+            gender: doc.gender,
+            workshops: doc.workshops || []
           }))
 
           setStudents(studentsArray)
@@ -90,30 +92,41 @@ const Attendees = () => {
   }, [])
 
   const handleAttendanceChange = (studentId: string, attended: boolean) => {
-    if (!selectedWorkshop) return;
+    if (!selectedWorkshop) return
 
     setAttendance(prev => {
-      const existingIndex = prev.findIndex(
-        record => record.studentId === studentId &&
-          record.workshopId === selectedWorkshop
-      );
+      const existingRecord = prev.find(
+        record => record.studentId === studentId && record.workshopId === selectedWorkshop
+      )
 
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = { ...updated[existingIndex], attended };
-        return updated;
+      if (existingRecord) {
+        return prev.map(record =>
+          record.studentId === studentId && record.workshopId === selectedWorkshop
+            ? { ...record, attended }
+            : record
+        )
       } else {
-        return [...prev, { studentId, workshopId: selectedWorkshop, attended }];
+        return [...prev, { studentId, workshopId: selectedWorkshop, attended }]
       }
-    });
-  };
+    })
+  }
 
-  const getAttendanceStatus = (studentId: string) => {
+  const getAttendanceStatus = (studentId: string, studentWorkshops: Array<Workshop>) => {
     if (!selectedWorkshop) return false
-    const record = attendance.find(
+    
+    const localRecord = attendance.find(
       record => record.studentId === studentId && record.workshopId === selectedWorkshop
     )
-    return record?.attended || false
+    
+    if (localRecord !== undefined) {
+      return localRecord.attended
+    }
+    
+    if (studentWorkshops && Array.isArray(studentWorkshops)) {
+      return studentWorkshops.some(workshop => workshop.$id === selectedWorkshop)
+    }
+    
+    return false
   }
 
   const filteredStudents = students.filter(student => {
@@ -130,32 +143,13 @@ const Attendees = () => {
     const total = filteredStudents.length
 
     const presentCount = filteredStudents.filter(student =>
-      getAttendanceStatus(student.$id)
+      getAttendanceStatus(student.$id, student.workshops)
     ).length
 
     const absentCount = total - presentCount
 
     return { present: presentCount, absent: absentCount, total }
   }
-
-  const updateAttendance = async () => {
-    try {
-      const attendingStudents = attendance
-        .filter(record =>
-          record.workshopId === selectedWorkshop &&
-          record.attended
-        )
-        .map(record => record.studentId);
-
-      await setWorkshopAttendance(selectedWorkshop, attendingStudents);
-
-      console.log("Attendance saved:", attendingStudents);
-      alert("Attendance saved successfully!");
-    } catch (err) {
-      console.error("Failed to save attendance:", err);
-      alert("Failed to save attendance");
-    }
-  };
 
   const exportToExcel = () => {
     if (!selectedWorkshop || filteredStudents.length === 0) return
@@ -164,7 +158,7 @@ const Attendees = () => {
     if (!workshop) return
 
     const data = filteredStudents.map(student => {
-      const attendanceStatus = getAttendanceStatus(student.$id)
+      const attendanceStatus = getAttendanceStatus(student.$id, student.workshops)
       return {
         'USN': student.USN,
         'Student Name': student.studentName,
@@ -187,6 +181,25 @@ const Attendees = () => {
 
     XLSX.writeFile(workbook, fileName)
   }
+
+   const updateAttendance = async () => {
+    if (!selectedWorkshop) {
+      alert("Please select a workshop first");
+      return;
+    }
+
+    try {
+      const attendingStudents = students
+        .filter(student => getAttendanceStatus(student.$id, student.workshops))
+        .map(student => student.$id);
+
+      await setWorkshopAttendance(selectedWorkshop, attendingStudents);
+      alert("Attendance saved successfully!");
+    } catch (err) {
+      console.error("Failed to save attendance:", err);
+      alert("Failed to save attendance. Please try again.");
+    }
+  };
 
   const stats = getAttendanceStats()
 
@@ -356,16 +369,19 @@ const Attendees = () => {
                 </div>
               ) : (
                 <div className="space-y-2 sm:space-y-3">
-                  {filteredStudents.map(student => (
+                  {filteredStudents.map(student => {
+                    const isPresent = getAttendanceStatus(student.$id, student.workshops)
+
+                    return(
                     <div
                       key={student.$id}
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 ${getAttendanceStatus(student.$id)
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 ${isPresent
                         ? 'bg-green-50 border-green-200'
                         : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                         }`}
                     >
                       <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-0">
-                        <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-white ${getAttendanceStatus(student.$id)
+                        <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-white ${isPresent
                           ? 'bg-green-500'
                           : 'bg-gray-400'
                           }`}>
@@ -388,7 +404,7 @@ const Attendees = () => {
                       <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
                         <button
                           onClick={() => handleAttendanceChange(student.$id, true)}
-                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${getAttendanceStatus(student.$id)
+                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${isPresent
                             ? 'bg-green-500 text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
                             }`}
@@ -398,7 +414,7 @@ const Attendees = () => {
                         </button>
                         <button
                           onClick={() => handleAttendanceChange(student.$id, false)}
-                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${!getAttendanceStatus(student.$id)
+                          className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 ${!isPresent
                             ? 'bg-red-500 text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'
                             }`}
@@ -408,7 +424,7 @@ const Attendees = () => {
                         </button>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>
