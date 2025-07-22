@@ -1,15 +1,48 @@
 "use client"
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Calendar, User, Download, Search, Filter, BookOpen, Users, Award, ChevronDown, ChevronUp, Menu, X } from 'lucide-react'
+import { fetchWorkshops } from "@/app/lib/appwrite"
+
+interface Student {
+  $id: string
+  studentName: string
+  USN: string
+  branch: string
+  year: number
+  gender: string
+}
+
+interface Workshop{
+  $id: string
+  workshopName: string
+  resourcePerson: string
+  organizedDepartment: string
+  date: string
+  certificateTemplate: string
+  textElement: string
+  students: Student[]
+}
 
 const WorkshopClientInterface = () => {
+// const [workshops, setWorkshops] = useState<Workshop[]>([]);
+
+  useEffect(() => {
+    const getWorkshops = async () => {
+      let res = await fetchWorkshops();
+
+      console.log("Workshop data: ");
+      console.log(res);
+    }
+
+    getWorkshops();
+  }, [])
+
   const workshops = [
     {
       id: '1',
       name: 'Web Development Fundamentals',
       date: '2024-03-15',
-      description: 'Introduction to HTML, CSS, and JavaScript',
       resourcePerson: 'Dr. Sarah Johnson',
       department: 'Computer Science'
     },
@@ -17,7 +50,6 @@ const WorkshopClientInterface = () => {
       id: '2',
       name: 'React & Modern JavaScript',
       date: '2024-03-22',
-      description: 'Building interactive web applications',
       resourcePerson: 'Prof. Michael Chen',
       department: 'Computer Science'
     },
@@ -25,7 +57,6 @@ const WorkshopClientInterface = () => {
       id: '3',
       name: 'Database Design Workshop',
       date: '2024-03-29',
-      description: 'SQL and database optimization techniques',
       resourcePerson: 'Ms. Emily Rodriguez',
       department: 'Information Technology'
     }

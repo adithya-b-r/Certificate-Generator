@@ -17,7 +17,7 @@ interface Student {
   $id: string
   studentName: string
   USN: string
-  branch: number
+  branch: string
   year: number
   gender: string
   workshops: Array<Workshop>
