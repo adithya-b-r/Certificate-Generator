@@ -44,9 +44,9 @@ const WorkshopClientInterface = () => {
           const workshopsData = response.documents as Workshop[]
           setWorkshops(workshopsData)
 
-          if (workshopsData.length > 0) {
-            setExpandedWorkshops(new Set([workshopsData[0].$id]))
-          }
+          // if (workshopsData.length > 0) {
+          //   setExpandedWorkshops(new Set([workshopsData[0].$id]))
+          // }
         } else {
           setWorkshops([])
           setError("Invalid data format received from server")
@@ -110,8 +110,19 @@ const WorkshopClientInterface = () => {
   }
 
   const totalAttendees = useMemo(() => {
+    const uniqueStudentIds = new Set<string>()
+    workshops.forEach(workshop => {
+      workshop.students?.forEach(student => {
+        uniqueStudentIds.add(student.$id)
+      })
+    })
+    return uniqueStudentIds.size
+  }, [workshops])
+
+  const totalCertificates = useMemo(() => {
     return workshops.reduce((total, workshop) => {
-      return total + getWorkshopAttendees(workshop).length
+      const uniqueStudents = new Set(workshop.students?.map(s => s.$id) || [])
+      return total + uniqueStudents.size
     }, 0)
   }, [workshops])
 
@@ -209,7 +220,7 @@ const WorkshopClientInterface = () => {
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600">Certificates Available</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalAttendees}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalCertificates}</p>
                 </div>
               </div>
             </div>
@@ -305,7 +316,7 @@ const WorkshopClientInterface = () => {
 
                     <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
                       <div className="text-left sm:text-right">
-                        <p className="text-xs sm:text-sm text-gray-500">Department</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Organized Department</p>
                         <p className="text-sm sm:text-base font-medium text-gray-900 truncate">{workshop.organizedDepartment}</p>
                       </div>
                       <div className="flex-shrink-0">
