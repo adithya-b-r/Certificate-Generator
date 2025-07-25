@@ -1,8 +1,11 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Calendar, User, Download, Search, Filter, BookOpen, Users, Award, ChevronDown, ChevronUp, Menu, X } from 'lucide-react'
 import { fetchWorkshops } from "@/app/lib/appwrite"
+import { motion } from 'framer-motion'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas-pro'
 
 interface Student {
   $id: string
@@ -24,6 +27,15 @@ interface Workshop {
   students: Student[]
 }
 
+interface TextElement {
+  text: string
+  x: number
+  y: number
+  fontSize: number
+  color: string
+  fontFamily: string
+}
+
 const WorkshopClientInterface = () => {
   const [workshops, setWorkshops] = useState<Workshop[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,6 +44,10 @@ const WorkshopClientInterface = () => {
   const [selectedBranch, setSelectedBranch] = useState('All Branches')
   const [expandedWorkshops, setExpandedWorkshops] = useState(new Set<string>())
   const [filtersVisible, setFiltersVisible] = useState(false)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [currentGenerating, setCurrentGenerating] = useState('')
+
+  const canvasRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
 
   useEffect(() => {
     const getWorkshops = async () => {
@@ -43,10 +59,6 @@ const WorkshopClientInterface = () => {
         if (response && Array.isArray(response.documents)) {
           const workshopsData = response.documents as Workshop[]
           setWorkshops(workshopsData)
-
-          // if (workshopsData.length > 0) {
-          //   setExpandedWorkshops(new Set([workshopsData[0].$id]))
-          // }
         } else {
           setWorkshops([])
           setError("Invalid data format received from server")
@@ -100,13 +112,109 @@ const WorkshopClientInterface = () => {
     setExpandedWorkshops(newExpanded)
   }
 
-  const handleDownloadCertificate = (studentName: string, workshopName: string) => {
-    alert(`Downloading certificate for ${studentName} - ${workshopName}`)
+  const generateCertificatePDF = async (workshop: Workshop, student: Student) => {
+    try {
+      setIsGeneratingPDF(true)
+      setCurrentGenerating(`Generating certificate for ${student.studentName}...`)
+
+      const canvasRef = canvasRefs.current[workshop.$id]
+      if (!canvasRef) return
+
+      const clone = canvasRef.cloneNode(true) as HTMLDivElement
+      clone.style.width = '1000px'
+      clone.style.height = '700px'
+      clone.style.position = 'fixed'
+      clone.style.left = '-10000px'
+      clone.style.top = '0'
+      document.body.appendChild(clone)
+
+      const nameElements = clone.querySelectorAll('.certificate-name');
+      nameElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.textContent = student.studentName;
+          el.style.color = '#000000';
+        }
+      });
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+      })
+
+      document.body.removeChild(clone)
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('landscape', 'pt', [canvas.width, canvas.height])
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height)
+      pdf.save(`${student.studentName}_${workshop.workshopName}_certificate.pdf`)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Failed to generate certificate. Please try again.')
+    } finally {
+      setIsGeneratingPDF(false)
+      setCurrentGenerating('')
+    }
   }
 
-  const handleDownloadAllCertificates = (workshop: Workshop) => {
-    const filteredAttendees = getFilteredAttendees(workshop)
-    alert(`Downloading ${filteredAttendees.length} certificates for ${workshop.workshopName}`)
+  const generateAllCertificatesPDF = async (workshop: Workshop) => {
+    try {
+      setIsGeneratingPDF(true)
+      setCurrentGenerating(`Generating certificates for ${workshop.workshopName}...`)
+
+      const filteredAttendees = getFilteredAttendees(workshop)
+      if (filteredAttendees.length === 0) return
+
+      const pdf = new jsPDF('landscape', 'pt', [1000, 700])
+      const textElements = JSON.parse(workshop.textElement) as TextElement
+
+      for (let i = 0; i < filteredAttendees.length; i++) {
+        const student = filteredAttendees[i]
+        const canvasRef = canvasRefs.current[workshop.$id]
+        if (!canvasRef) continue
+
+        const clone = canvasRef.cloneNode(true) as HTMLDivElement
+        clone.style.width = '1000px'
+        clone.style.height = '700px'
+        clone.style.position = 'fixed'
+        clone.style.left = '-10000px'
+        clone.style.top = '0'
+        document.body.appendChild(clone)
+
+        const nameElements = clone.querySelectorAll('.certificate-name');
+        nameElements.forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.textContent = student.studentName;
+            el.style.color = '#000000';
+          }
+        });
+
+        const canvas = await html2canvas(clone, {
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          allowTaint: true
+        })
+
+        document.body.removeChild(clone)
+
+        const imgData = canvas.toDataURL('image/png')
+
+        if (i > 0) {
+          pdf.addPage([1000, 700], 'landscape')
+        }
+        pdf.addImage(imgData, 'PNG', 0, 0, 1000, 700)
+      }
+
+      pdf.save(`${workshop.workshopName}_certificates.pdf`)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Failed to generate certificates. Please try again.')
+    } finally {
+      setIsGeneratingPDF(false)
+      setCurrentGenerating('')
+    }
   }
 
   const totalAttendees = useMemo(() => {
@@ -174,6 +282,20 @@ const WorkshopClientInterface = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {isGeneratingPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <div className="flex items-center gap-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              <div>
+                <p className="font-medium text-gray-900">Generating PDF</p>
+                <p className="text-sm text-gray-600">{currentGenerating}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -283,6 +405,8 @@ const WorkshopClientInterface = () => {
             const totalWorkshopAttendees = getWorkshopAttendees(workshop).length
             const isExpanded = expandedWorkshops.has(workshop.$id)
 
+            const textElements = JSON.parse(workshop.textElement) as TextElement
+
             return (
               <div key={workshop.$id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div
@@ -351,13 +475,99 @@ const WorkshopClientInterface = () => {
                             Attendees ({filteredAttendees.length})
                           </h4>
                           <button
-                            onClick={() => handleDownloadAllCertificates(workshop)}
-                            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm sm:text-base"
+                            onClick={() => generateAllCertificatesPDF(workshop)}
+                            disabled={isGeneratingPDF}
+                            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Download className="w-4 h-4" />
                             <span className="hidden sm:inline">Download All Certificates</span>
                             <span className="sm:hidden">Download All</span>
                           </button>
+                        </div>
+
+                        <div className="mb-4 sm:mb-6">
+                          <div
+                            ref={(el) => { canvasRefs.current[workshop.$id] = el }}
+                            className="h-64 sm:h-80 md:h-96 w-full bg-gray-100 relative overflow-hidden rounded-lg border border-gray-200"
+                            style={{
+                              backgroundImage: `url(${workshop.certificateTemplate})`,
+                              backgroundSize: 'contain',
+                              backgroundRepeat: 'no-repeat',
+                              backgroundPosition: 'center'
+                            }}
+                          >
+                            {/* Mobile version */}
+                            <motion.div
+                              className="absolute cursor-move text-center md:hidden certificate-name"
+                              style={{
+                                left: `${textElements.x || 50}%`,
+                                top: `${textElements.y || 50}%`,
+                                fontSize: `${textElements.fontSize * 0.6}px`,
+                                color: textElements.color,
+                                fontFamily: textElements.fontFamily,
+                                padding: '0.25rem',
+                                transform: 'translate(-50%, -50%)',
+                                lineHeight: '1.2',
+                                width: '90%',
+                                maxWidth: '90%',
+                                textShadow: '0 0 2px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              <span className="whitespace-pre-wrap break-words">
+                                {filteredAttendees[0]?.studentName || 'Sample Name'}
+                              </span>
+                            </motion.div>
+
+                            {/* Tablet version */}
+                            <motion.div
+                              className="hidden md:block lg:hidden absolute cursor-move text-center certificate-name"
+                              style={{
+                                left: `${textElements.x || 50}%`,
+                                top: `${textElements.y || 50}%`,
+                                fontSize: `${textElements.fontSize * 0.85}px`,
+                                color: textElements.color,
+                                fontFamily: textElements.fontFamily,
+                                padding: '0.25rem',
+                                transform: 'translate(-50%, -50%)',
+                                lineHeight: '1.2',
+                                width: '85%',
+                                maxWidth: '85%',
+                                textShadow: '0 0 2px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              <span className="whitespace-pre-wrap break-words">
+                                {filteredAttendees[0]?.studentName || 'Sample Name'}
+                              </span>
+                            </motion.div>
+
+                            {/* Desktop version */}
+                            <motion.div
+                              className="hidden lg:block absolute cursor-move text-center certificate-name"
+                              style={{
+                                left: `${textElements.x || 50}%`,
+                                top: `${textElements.y || 50}%`,
+                                fontSize: `${textElements.fontSize}px`,
+                                color: textElements.color,
+                                fontFamily: textElements.fontFamily,
+                                padding: '0.25rem',
+                                transform: 'translate(-50%, -50%)',
+                                lineHeight: '1.2',
+                                width: '80%',
+                                maxWidth: '80%',
+                                textShadow: '0 0 2px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              <span className="whitespace-pre-wrap break-words">
+                                {filteredAttendees[0]?.studentName || 'Sample Name'}
+                              </span>
+                            </motion.div>
+
+                            {!workshop.certificateTemplate && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <p className="text-gray-500 text-sm">Certificate template preview</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
@@ -383,8 +593,9 @@ const WorkshopClientInterface = () => {
                               </div>
 
                               <button
-                                onClick={() => handleDownloadCertificate(student.studentName, workshop.workshopName)}
-                                className="w-full flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-green-600 text-white text-xs sm:text-sm rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
+                                onClick={() => generateCertificatePDF(workshop, student)}
+                                disabled={isGeneratingPDF}
+                                className="w-full flex items-center justify-center gap-1 px-2 sm:px-3 py-2 bg-green-600 text-white text-xs sm:text-sm rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <Download className="w-3 h-3" />
                                 <span>Download Certificate</span>
